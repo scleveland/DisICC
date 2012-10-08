@@ -1,0 +1,43 @@
+# defaults: &defaults
+#   adapter: sqlite
+# 
+# development:
+#   database: db/disicc_development.db
+#   <<: *defaults
+# 
+#   # Add more repositories
+#   # repositories:
+#   #   repo1:
+#   #     adapter:  postgres
+#   #     database: sample_development
+#   #     username: the_user
+#   #     password: secrets
+#   #     host:     localhost
+#   #   repo2:
+#   #     ...
+# 
+# test:
+#   database: db/disicc_test.db
+#   <<: *defaults
+# production:
+#   database: db/disicc_production.db
+#   <<: *defaults
+
+
+postgres_defaults: &postgres_defaults
+  adapter: postgres
+  username: seancleveland
+  password: 
+  host: localhost
+
+development:
+  database: dev_disicc
+  <<: *postgres_defaults
+
+production:
+  database: prod_disicc
+  <<: *postgres_defaults
+
+test:
+  database: test_disicc
+  <<: *postgres_defaults

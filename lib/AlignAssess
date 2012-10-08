@@ -1,0 +1,464 @@
+#!/usr/bin/perl
+
+print "\n";
+print "********************************************************************************\n";
+print "**********************program to assess multiple alignment**********************\n";
+print "********************************************************************************\n";
+print "\n";
+
+###################################################################
+# determine users requirements
+###################################################################
+# asking for the input file
+print "For this program to run, the file to be processed must be in the current working directory:\n";
+system pwd;
+print "\n";
+
+print "\nPlease enter the name of the alignment file to process:\n";
+$infile = <STDIN>;
+chomp $infile;
+# checking to see if the file exists
+until (-f $infile)
+
+{ # the -f bit means check if there is a file called ...
+        print "Sorry, that file does not appear to exist, please try again.\n";
+        $infile = <STDIN>;
+        chomp $infile;
+}
+open (INFILE, $infile) || die "Sorry, system can't open $infile for reading";
+
+print "\nPlease enter P to assess a protein alignment or N to assess a nucleotide alignment:\n";
+$seq_type = <STDIN>;
+chomp($seq_type);
+until ($seq_type eq 'P' || $seq_type eq 'p' || $seq_type eq 'N' || $seq_type eq 'n')
+{
+   print "Sorry, that is not a valid option, please try again.\n";
+   $seq_type = <STDIN>;
+   chomp($seq_type);
+}
+
+
+$i = -1;
+$query_index = 0;
+$bestID = 0;
+$bestLength = 0;
+
+while ($line = <INFILE>)
+{
+   chomp($line);
+   if ($line =~ /^>/) {
+      $i++;
+      $fastaline[$i] = $line;
+      $is_null[$i] = "false";
+      if ($line =~ /component:null/) {
+         #print "DEBUG! founnd null.\n";
+         $is_null[$i] = "true";
+      }
+      @field = split(/\|/, $line);
+      $numFields = @field;
+      if ( $field[4] =~ /genomeID/ && $field[5] =~ /genomeLength/ ) {
+         $queryName = $field[3];
+         $componentName = $field[6];
+         @genID = split(/:/, $field[4]);
+         @genLength = split(/:/, $field[5]);
+         if ( ($genID[1] > $bestID) || ($genID[1] == $bestID && $genLength[1] > $bestLength) ) {
+            $query_index = $i;
+            $bestID = $genID[1];
+            $bestLength = $genLength[1];
+         }
+         $is_junk[$i] = "false";
+         if ($genID[1] <= 15) {
+            $is_junk[$i] = "true";
+         }
+      }
+      else {
+         if ($seq_type eq 'n' || $seq_type eq 'N') {
+            $queryName = "Nucleotide";
+         }
+         else {
+            $queryName = "Protein";
+         }
+         $componentName = $infile;
+         $is_junk[$i] = "false";
+      }
+   }
+   else {
+      $sequence[$i] = $sequence[$i] . "\L$line";
+   }
+}
+
+$outfile = $infile . "_assess";
+open (OUTFILE, ">$outfile") || die "sorry, system can't open outfile $outfile for writing to";
+
+
+$pw_count = 0;
+$avg_count = 0;
+
+if ($seq_type eq 'n' || $seq_type eq 'N') { 
+   for ($j=0; $j<=$i; $j++) { #for each sequence in the multiple alignment
+   
+      $Ninfo[$j] = "N substring length\(position\): ";
+      $prevN = "false";
+      $subNcount = 0;
+      $subNstart = 0;
+      $Ncount[$j] = 0;
+
+      $InDelinfo[$j] = "InDel substring length\(position\): ";
+      $prevInDel = "false";
+      $subInDelcount = 0;
+      $subInDelstart = 0;
+      $InDelcount[$j] = 0;
+
+      @align1_char = split //, $sequence[$j];
+      $length_align1 = @align1_char;
+
+      for($k=$j+1; $k<=$i; $k++) { #for each previously uncomputed possible pairwise alignement
+          $MatchInfo[$pw_count][0] = $j;
+          $MatchInfo[$pw_count][1] = $k;
+          @align2_char = split //, $sequence[$k];
+          $length_align2 = @align2_char;
+          if ($length_align2 < $length_align1) { $compare_count = $length_align2; }
+          else { $compare_count = $length_align1; }
+          $num_matches = 0;
+
+          if ($is_null[$j] eq "false" && $is_null[$k] eq "false") {
+             for($m=0; $m<$compare_count; $m++) {
+                if ( $align1_char[$m] ne "n" && $align1_char[$m] ne "-" && $align2_char[$m] ne "n" && $align2_char[$m] ne "-" ) {
+                   if ($align1_char[$m] eq $align2_char[$m]) {
+                      $num_matches++;
+                   }
+                }
+             }
+             $MatchInfo[$pw_count][2] = $num_matches;
+             $avg_count++;
+          }
+          $pw_count++;
+      }
+
+      $numInDels[$j] = 0;
+      $numBigInDels[$j] = 0;
+      for($s=0; $s<$length_align1; $s++) {
+         if ($align1_char[$s] eq "n") {
+            $Ncount[$j]++;
+            $subNcount++;
+            if ($prevN eq "false") {
+               $subNstart = $s+1;
+            }
+            $prevN = "true";
+         }
+         else {
+            if ($prevN eq "true") {
+               $Ninfo[$j] = $Ninfo[$j] . $subNcount . "\(" . $subNstart . "-" . $s . "\) ";
+               $subNcount = 0;
+               $subNstart = 0;
+               $subNend = 0;
+            }
+            $prevN = "false";
+         }
+
+         if ($align1_char[$s] eq "-") {
+            $InDelcount[$j]++;
+            $subInDelcount++;
+            if ($prevInDel eq "false") {
+               $subInDelstart = $s+1;
+            }
+            $prevInDel = "true";
+         }
+         else {
+            if ($prevInDel eq "true") {
+               $InDelinfo[$j] = $InDelinfo[$j] . $subInDelcount . "\(" . $subInDelstart . "-" . $s . "\) ";
+               $numInDels[$j]++;
+               if ($subInDelcount >= 100) {
+                  $numBigInDels[$j]++;
+               }
+               $subInDelcount = 0;
+               $subInDelstart = 0;
+               $subInDelend = 0;
+            }
+            $prevInDel = "false";
+         }
+      }
+
+      if($align1_char[$length_align1-1] eq "-") { 
+         $InDelinfo[$j] = $InDelinfo[$j] . $subInDelcount . "\(" . $subInDelstart . "-" . $s . "\) ";
+         $numInDels[$j]++; 
+         if ($subInDelcount >= 100) {
+            $numBigInDels[$j]++;
+         }
+      }
+
+      $seqLength[$j] = $length_align1 - ($Ncount[$j]+$InDelcount[$j]);
+      $Ninfo[$j] = $Ninfo[$j] . "\tTotal N count: " . $Ncount[$j];
+      $InDelinfo[$j] = $InDelinfo[$j] . "\tNumber of InDel events: " . $numInDels[$j];
+      $printnum[$j] = $j+1;
+   }
+
+   for ($j=0; $j<=$i; $j++) { #for each sequence in the multiple alignment
+      if ($is_null[$j] eq "false" ) {
+        if ($j==$query_index) {
+           print OUTFILE "Qry$printnum[$j]: $fastaline[$j]\tLength\(-Ns\): $seqLength[$j]\n";
+        }
+        else {
+           print OUTFILE "Seq$printnum[$j]: $fastaline[$j]\tLength\(-Ns\): $seqLength[$j]\n";
+        }
+        print OUTFILE "\t$Ninfo[$j]\n";
+        print OUTFILE "\t$InDelinfo[$j]\n";
+        print OUTFILE "\tNumber of delMu events is: $numBigInDels[$j]\n"
+      }
+      
+      else {
+         if ($j==$query_index) {
+            print OUTFILE "Qry$printnum[$j]: $fastaline[$j]\n";
+         }
+         else {
+            print OUTFILE "Seq$printnum[$j]: $fastaline[$j]\n";
+         }
+         $seqLength[$j] = 0;
+         $Ninfo[$j] = 0;
+         $InDelinfo[$j] = 0;
+      }
+   }
+}
+
+
+else {
+   for ($j=0; $j<=$i; $j++) { #for each sequence in the multiple alignment
+
+      $Xinfo[$j] = "X substring length\(position\): ";
+      $prevX = "false";
+      $subXcount = 0;
+      $subXstart = 0;
+      $Xcount[$j] = 0;
+
+      $InDelinfo[$j] = "InDel substring length\(position\): ";
+      $prevInDel = "false";
+      $subInDelcount = 0;
+      $subInDelstart = 0;
+      $InDelcount[$j] = 0;
+
+      @align1_char = split //, $sequence[$j];
+      $length_align1 = @align1_char;
+
+      for($k=$j+1; $k<=$i; $k++) { #for each previously uncomputed possible pairwise alignement
+          $MatchInfo[$pw_count][0] = $j;
+          $MatchInfo[$pw_count][1] = $k;
+          @align2_char = split //, $sequence[$k];
+          $length_align2 = @align2_char;
+          if ($length_align2 < $length_align1) { $compare_count = $length_align2; }
+          else { $compare_count = $length_align1; }
+          $num_matches = 0;
+
+          if ($is_null[$j] eq "false" && $is_null[$k] eq "false") {
+             for($m=0; $m<$compare_count; $m++) {
+                if ( $align1_char[$m] ne "x" && $align1_char[$m] ne "-" && $align2_char[$m] ne "x" && $align2_char[$m] ne "-" ) {
+                   if ($align1_char[$m] eq $align2_char[$m]) {
+                      $num_matches++;
+                   }
+                }
+             }
+             $MatchInfo[$pw_count][2] = $num_matches;
+             $avg_count++;
+          }
+          $pw_count++;
+      }
+
+      $numInDels[$j] = 0;
+      $numBigInDels[$j] = 0;
+      for($s=0; $s<$length_align1; $s++) {
+         if ($align1_char[$s] eq "x") {
+            $Xcount[$j]++;
+            $subXcount++;
+            if ($prevX eq "false") {
+               $subXstart = $s+1;
+            }
+            $prevX = "true";
+         }
+         else {
+            if ($prevX eq "true") {
+               $Xinfo[$j] = $Xinfo[$j] . $subXcount . "\(" . $subXstart . "-" . $s . "\) ";
+               $subXcount = 0;
+               $subXstart = 0;
+               $subNend = 0;
+            }
+            $prevX = "false";
+         }
+
+         if ($align1_char[$s] eq "-") {
+            $InDelcount[$j]++;
+            $subInDelcount++;
+            if ($prevInDel eq "false") {
+               $subInDelstart = $s+1;
+            }
+            $prevInDel = "true";
+         }
+         else {
+            if ($prevInDel eq "true") {
+               $InDelinfo[$j] = $InDelinfo[$j] . $subInDelcount . "\(" . $subInDelstart . "-" . $s . "\) ";
+               $numInDels[$j]++;
+               if ($subInDelcount >= 100) {
+                  $numBigInDels[$j]++;
+               }
+               $subInDelcount = 0;
+               $subInDelstart = 0;
+               $subInDelend = 0;
+            }
+            $prevInDel = "false";
+         }
+      }
+
+      if($align1_char[$length_align1-1] eq "-") {
+         $InDelinfo[$j] = $InDelinfo[$j] . $subInDelcount . "\(" . $subInDelstart . "-" . $s . "\) ";
+         $numInDels[$j]++;
+         if ($subInDelcount >= 100) {
+            $numBigInDels[$j]++;
+         }
+      }
+
+      $seqLength[$j] = $length_align1 - ($Xcount[$j]+$InDelcount[$j]);
+      $Xinfo[$j] = $Xinfo[$j] . "\tTotal X count: " . $Xcount[$j];
+      $InDelinfo[$j] = $InDelinfo[$j] . "\tNumber of InDel events: " . $numInDels[$j];
+      $printnum[$j] = $j+1;
+   }
+   
+   for ($j=0; $j<=$i; $j++) { #for each sequence in the multiple alignment
+      if ($is_null[$j] eq "false" ) {
+        if ($j==$query_index) {
+           print OUTFILE "Qry$printnum[$j]: $fastaline[$j]\tLength\(-Xs\): $seqLength[$j]\n";
+        }
+        else {
+           print OUTFILE "Seq$printnum[$j]: $fastaline[$j]\tLength\(-Xs\): $seqLength[$j]\n";
+        }
+         print OUTFILE "\t$Xinfo[$j]\n";
+         print OUTFILE "\t$InDelinfo[$j]\n";
+      }
+      else {
+         if ($j==$query_index) {
+            print OUTFILE "Qry$printnum[$j]: $fastaline[$j]\n";
+         }
+         else {
+            print OUTFILE "Seq$printnum[$j]: $fastaline[$j]\n";
+         }
+         $seqLength[$j] = 0;
+         $Xinfo[$j] = 0;
+         $InDelinfo[$j] = 0;
+      }
+   }
+}
+
+$longTotal=0;
+for($p=0; $p<$pw_count; $p++) {
+   $seq1 = $MatchInfo[$p][0] + 1;
+   $seq2 = $MatchInfo[$p][1] + 1;
+   if($seqLength[$MatchInfo[$p][0]] <= $seqLength[$MatchInfo[$p][1]]) {
+      if ($seqLength[$MatchInfo[$p][1]] != 0) {
+         $longerID[$seq1][$seq2]=($MatchInfo[$p][2]/$seqLength[$MatchInfo[$p][1]])*100;
+      }
+      else {
+         $longerID[$seq1][$seq2]=0;
+      }
+      $longTotal=$longTotal+$longerID[$seq1][$seq2];
+   }
+   else {
+      if ($seqLength[$MatchInfo[$p][0]] != 0 ) {
+         $longerID[$seq1][$seq2]=($MatchInfo[$p][2]/$seqLength[$MatchInfo[$p][0]])*100; 
+      }
+      else {
+         $longerID[$seq1][$seq2]=0;
+      }
+      $longTotal=$longTotal+$longerID[$seq1][$seq2];
+   }
+}
+
+print OUTFILE "\n\nPair-wise %ID over longer sequence:\n\n";
+for($seq1=1; $seq1<=$i+1; $seq1++) {
+   if (($seq1-1)==$query_index) {
+      print OUTFILE "\tQry$seq1";
+   }
+   else {
+      print OUTFILE "\tSeq$seq1";
+   }
+}
+print OUTFILE "\n";
+
+for($seq1=1; $seq1<=$i+1; $seq1++) {
+   if (($seq1-1)==$query_index) {
+      print OUTFILE "Qry$seq1";
+   }
+   else {
+      print OUTFILE "Seq$seq1";
+   }
+   for($seq2=1; $seq2<=$i+1; $seq2++) {
+      if($seq1==$seq2) {
+         print OUTFILE "\t0";
+      }
+      elsif($seq1<$seq2) {
+         $printID = sprintf("%.2f", $longerID[$seq1][$seq2]);
+         print OUTFILE "\t$printID";
+      }
+      else {
+         $printID = sprintf("%.2f", $longerID[$seq2][$seq1]);
+         print OUTFILE "\t$printID";
+      }
+   }
+   print OUTFILE "\n";
+}
+
+if($avg_count != 0) {
+   $longAverage = sprintf("%.2f", $longTotal/$avg_count);
+}
+else {
+   $longAverage = 0;
+}
+
+print OUTFILE "\nAverage %ID of pairwise alignment over all non-null sequence sets: $longAverage\n";
+
+
+$outfile2 = $queryName . "_AssessSets";
+
+#print "DEBUG: outfile2 is: " . $outfile2 . " and does it exist is: " . (-e outfile2) . "\n";
+if (-e $outfile2) { 
+   #do not report junk seqs again 
+}
+else {
+   #print "DEBUG - nope must not\n";
+   open (OUTFILE2, ">>$outfile2") || die "sorry, system can't open outfile $outfile2 for writing to";
+
+   for ($j=0; $j<=$i; $j++) { #for each sequence in the multiple alignment
+      @get_NewFasta = split(/\|/, $fastaline[$j]);
+      $summaryFasta = $get_NewFasta[0] . "\|" . $get_NewFasta[1] . "\|" . $get_NewFasta[2] . "\|" . $get_NewFasta[3] . "\|" . $get_NewFasta[4] . "\|" . $get_NewFasta[5] . "\|" . $get_NewFasta[7]; 
+      if ($j==$query_index) {
+         print OUTFILE2 "Qry$printnum[$j]: $summaryFasta\n";
+      }
+      else {
+         print OUTFILE2 "Seq$printnum[$j]: $summaryFasta\n";
+      }
+   }
+
+   print OUTFILE2 "\nJunk Seqs: ";
+   for ($j=0; $j<=$i; $j++) { #for each sequence in the multiple alignment
+      if ($is_junk[$j] eq "true") {
+         $num = $j+1;
+         print OUTFILE2 "Seq$num ";
+      }
+   }
+   print OUTFILE2 "\n\n";
+   close (OUTFILE2);
+}
+
+open (OUTFILE2, ">>$outfile2") || die "sorry, system can't open outfile $outfile2 for writing to";
+print OUTFILE2 $componentName . " DelMu Seqs: ";
+for ($j=0; $j<=$i; $j++) { #for each sequence in the multiple alignment
+   #print "DEBUG j is $j and is_null is $is_null[$j] and is_junk is $is_junk[$j].\n";
+   if ($j != $query_index) {
+      if ( (($numBigInDels[$j] != $numBigInDels[$query_index]) || ($is_null[$j] eq "true")) && ($is_junk[$j] eq "false") ) {
+         $num = $j+1;
+         print OUTFILE2 "Seq$num ";
+         #print "\tDEBUG added Seq$num to $componentName DelMus\n";
+      }
+   }
+}
+print OUTFILE2 "\n";
+
+close (INFILE);
+close (OUTFILE);
+close (OUTFILE2);

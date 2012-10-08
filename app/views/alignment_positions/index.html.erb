@@ -1,0 +1,21 @@
+<h1>Listing alignment_positions</h1>
+
+<table>
+  <tr>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tr>
+
+<% @alignment_positions.each do |alignment_position| %>
+  <tr>
+    <td><%= link_to 'Show', alignment_position %></td>
+    <td><%= link_to 'Edit', edit_alignment_position_path(alignment_position) %></td>
+    <td><%= link_to 'Destroy', alignment_position, :confirm => 'Are you sure?', :method => :delete %></td>
+  </tr>
+<% end %>
+</table>
+
+<br />
+
+<%= link_to 'New Alignment position', new_alignment_position_path %>

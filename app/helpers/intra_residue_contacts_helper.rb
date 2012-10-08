@@ -1,0 +1,2 @@
+module IntraResidueContactsHelper
+end

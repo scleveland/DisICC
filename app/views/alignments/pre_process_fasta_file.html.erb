@@ -1,0 +1,37 @@
+<h2>Assign the Correct Sequences</h2>
+<%= form_tag "complete_process_fasta_file", :multipart => true do%>
+  
+  <div class="actions">
+    Alignment Name:
+    <%= @alignment_name %>
+    <br>
+    Sequence Type:
+    <%= @seq_type %>
+    <br>
+    <table>
+      <tr>
+        <th> Fasta Sequence Title</th>
+        <th> Database Sequence</th>
+      </tr>
+      <%- color = 1 %>
+      <%- counter = 0 %>
+    <%- @fasta_name_arrays.each do |fasta| %>
+      <%- color = 1 - color%>
+      <tr class = '<%= "row" + color.to_s %>'> 
+        <td><%= fasta %></td>
+        <td><%= select_tag("seq"+counter.to_s, options_for_select(@seq_options.sort)) %></td>
+        <%= hidden_field_tag("fasta_name"+counter.to_s, fasta) %>
+      </tr>
+      <%-counter +=1%>
+    <% end %>
+    </table>
+    <br><br>
+      <%= submit_tag("Complete Alignment") %>
+  </div>
+  <%= hidden_field_tag("datafile_name", @name) %>
+  <%= hidden_field_tag("alignment_name", @alignment_name) %>
+  <%= hidden_field_tag("seq_type", @seq_type) %>
+  <%= hidden_field_tag("seq_num", @fasta_name_arrays.length) %>
+<%- end %>
+
+<%= link_to 'Back', alignments_path %>

@@ -1,0 +1,40 @@
+<h1>Listing alignments</h1>
+
+<table>
+  <tr>
+    <%- @alignments.properties.each do |prop|-%>
+      <th>
+        <b><%= prop.name%>:</b>
+      </th>
+    <%- end -%>
+    <th></th>
+    <th></th>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tr>
+
+<% @alignments.each do |alignment| %>
+  <tr>
+    <%- @alignments.properties.each do |prop|-%>
+    <td>
+      <%= link_to alignment[prop.name], display_annotated_alignment_alignment_path(alignment.align_id) %>
+    </td>
+    <%- end -%>
+    <td>
+      <%= link_to "Compensatory", display_compensatory_annotated_alignment_alignment_path(alignment.align_id) %>
+    </td>
+    <td>
+      <%= link_to "Disorder", display_disorder_annotated_alignment_alignment_path(alignment.align_id) %>
+    </td>
+    <td><%= link_to 'Show', alignment %></td>
+    <td><%= link_to 'Edit', edit_alignment_path(alignment) %></td>
+    <td><%= link_to 'Destroy', alignment, :confirm => 'Are you sure?', :method => :delete %></td>
+  </tr>
+<% end %>
+</table>
+
+<br />
+
+<%= link_to 'New Alignment', new_alignment_path %>
+<%= link_to 'Back', root_path %>

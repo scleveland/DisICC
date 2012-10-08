@@ -1,0 +1,29 @@
+CC=g++ -lstdc++-static -search_paths_first -no_compact_linkedit -I/usr/local/include -isysroot /Developer/SDKs/MacOSX10.6.sdk -mmacosx-version-min=10.6 
+CFLAGS=#-W #-Wall
+OPT=-O3 -funroll-loops
+MATH =#-lm
+DEBUG=#-g
+BIOPHYL=/usr/local/lib/libbpp-phyl.a
+BIONUC=/usr/local/lib/libbpp-numcalc.a
+BIOUT=/usr/local/lib/libbpp-utils.a
+BIOSEQ=/usr/local/lib/libbpp-seq.a
+RM=rm -f
+ARCH=#-arch i386 #-arch ppc -arch i686
+GSL=/usr/local/lib/libgsl.a /usr/local/lib/libgslcblas.a #-lgsl #-lgslcblas #-I/sw/include -L/sw/lib
+
+all:	BCFasta.o file_manip.o Blosum.o create.o caps 
+
+caps: caps.cpp file_manip.o create.o BCFasta.o
+	$(CC) $(ARCH) $(CFLAGS) $(OPT)   caps.cpp file_manip.o BCFasta.o create.o Blosum.o -o caps $(BIOPHYL)  $(BIOSEQ) $(BIONUC) $(BIOUT) $(GSL)
+Blosum.o: Blosum.cpp
+	$(CC) $(ARCH) $(CFLAGS) $(OPT) -c Blosum.cpp
+create.o: create.cpp
+	$(CC) $(ARCH) $(OPT) $(CFLAGS) -c create.cpp
+file_manip.o: file_manip.cpp
+	$(CC) $(ARCH) $(OPT) $(CFLAGS) -c file_manip.cpp
+BCFasta.o: BCFasta.cpp
+	$(CC) $(ARCH) $(OPT) $(CFLAGS) -c BCFasta.cpp
+clean:
+	$(RM) *.o *~ caps
+cleanout:
+	$(RM) *.o *~ caps *.csv *.out 

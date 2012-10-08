@@ -1,0 +1,17 @@
+<%= form_for(@xdet) do |f| %>
+  <% if @xdet.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@xdet.errors.count, "error") %> prohibited this xdet from being saved:</h2>
+
+      <ul>
+      <% @xdet.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>

@@ -1,0 +1,21 @@
+<h1>Listing disorder_types</h1>
+
+<table>
+  <tr>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tr>
+
+<% @disorder_types.each do |disorder_type| %>
+  <tr>
+    <td><%= link_to 'Show', disorder_type %></td>
+    <td><%= link_to 'Edit', edit_disorder_type_path(disorder_type) %></td>
+    <td><%= link_to 'Destroy', disorder_type, :confirm => 'Are you sure?', :method => :delete %></td>
+  </tr>
+<% end %>
+</table>
+
+<br />
+
+<%= link_to 'New Disorder type', new_disorder_type_path %>

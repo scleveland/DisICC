@@ -1,0 +1,21 @@
+<h1>Listing a_asequences</h1>
+
+<table>
+  <tr>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tr>
+
+<% @a_asequences.each do |a_asequence| %>
+  <tr>
+    <td><%= link_to 'Show', a_asequence %></td>
+    <td><%= link_to 'Edit', edit_a_asequence_path(a_asequence) %></td>
+    <td><%= link_to 'Destroy', a_asequence, :confirm => 'Are you sure?', :method => :delete %></td>
+  </tr>
+<% end %>
+</table>
+
+<br />
+
+<%= link_to 'New A asequence', new_a_asequence_path %>

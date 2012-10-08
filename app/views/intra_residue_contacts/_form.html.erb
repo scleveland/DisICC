@@ -1,0 +1,17 @@
+<%= form_for(@intra_residue_contact) do |f| %>
+  <% if @intra_residue_contact.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@intra_residue_contact.errors.count, "error") %> prohibited this intra_residue_contact from being saved:</h2>
+
+      <ul>
+      <% @intra_residue_contact.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>

@@ -1,0 +1,33 @@
+<%= form_for(@sequence) do |f| %>
+  <% if @sequence.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@sequence.errors.count, "error") %> prohibited this sequence from being saved:</h2>
+
+      <ul>
+      <% @sequence.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="actions">
+  Sequence Name:
+  <br>
+  <%= f.text_field("seq_name") %>
+  <br><br>
+  Accession:
+  <br>
+  <%= f.text_field("seq_accession") %>
+  <br><br>
+  Protein Type(L,N or P)
+  <br>
+  <%= f.select("seq_type", options_for_select(@seq_types)) %>
+  <br><br>
+  Sequence (Amino Acids):
+  <BR>
+  <%= f.text_area("sequence", :rows => 15, :cols => 80) %>
+  <br><br>
+  <%= f.submit %>
+  </div>
+<% end %>

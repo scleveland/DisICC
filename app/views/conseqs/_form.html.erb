@@ -1,0 +1,17 @@
+<%= form_for(@conseq) do |f| %>
+  <% if @conseq.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@conseq.errors.count, "error") %> prohibited this conseq from being saved:</h2>
+
+      <ul>
+      <% @conseq.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>

@@ -1,0 +1,21 @@
+<h1>Listing conseqs</h1>
+
+<table>
+  <tr>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tr>
+
+<% @conseqs.each do |conseq| %>
+  <tr>
+    <td><%= link_to 'Show', conseq %></td>
+    <td><%= link_to 'Edit', edit_conseq_path(conseq) %></td>
+    <td><%= link_to 'Destroy', conseq, :confirm => 'Are you sure?', :method => :delete %></td>
+  </tr>
+<% end %>
+</table>
+
+<br />
+
+<%= link_to 'New Conseq', new_conseq_path %>

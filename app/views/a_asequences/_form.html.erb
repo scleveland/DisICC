@@ -1,0 +1,17 @@
+<%= form_for(@a_asequence) do |f| %>
+  <% if @a_asequence.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@a_asequence.errors.count, "error") %> prohibited this a_asequence from being saved:</h2>
+
+      <ul>
+      <% @a_asequence.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>
