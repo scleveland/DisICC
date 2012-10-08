@@ -1,0 +1,2 @@
+module XdetsHelper
+end

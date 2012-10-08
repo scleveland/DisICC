@@ -1,0 +1,44 @@
+<p id="notice"><%= notice %></p>
+<br>
+<br>
+<% (0..@ranges).each do |i| %>
+  <table>
+    <%- @display_array.each do |seq| %>
+      <tr>
+        <td><%= seq["name"] %></td>
+        <%- #seq["alignment"].each do |residue| %>
+        <%- ((i*@aa_length)..(i*@aa_length+@aa_length-1)).each do |r|  %>
+          <% if seq["alignment"].length > r %>
+            <td align = "center" bgcolor = #<%= seq["alignment"][r]%>>&nbsp</td>
+          <%-end%>
+        <%- end %>
+      </tr>
+    <%- end %>
+    <!--<tr>
+     <td>"Contact Consensus"</td>
+     <%-  @contact_consensus_array.each do |con| %>
+       <td><%=con%></td>
+     <%- end %>
+    </tr>--!>
+  </table>
+  <br>
+  <br>
+  <br>
+  <br>
+<% end %>
+<br>
+Total Number of Sequences in Alignment: <%=@display_array.length-1%>
+<br>
+Total Number of Sequences with Contacts: <%=@seq_contact_count%>
+<br><br>
+<table>
+  <%-  @contact_consensus_array.length.times do |i| %>
+    <tr>
+      <td><%= i%></td>
+      <td><%= @contact_consensus_array[i] %></td>
+      <% num =  @contact_consensus_array[i].to_f / @seq_contact_count #@display_array.length.to_f %>
+      <td><%= num %></td>
+    </tr>  
+  <%- end %>
+</table>  
+<%= link_to 'Back', alignments_path %>

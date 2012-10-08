@@ -1,0 +1,12 @@
+<p id="notice"><%= notice %></p>
+
+<%- @sequence.properties.each do |prop|-%>
+<p>
+  <b><%= prop.name %>:</b>
+  <%= @sequence[prop.name] %>
+</p>
+<%- end -%>
+
+
+<%= link_to 'Edit', edit_sequence_path(@sequence) %> |
+<%= link_to 'Back', sequences_path %>

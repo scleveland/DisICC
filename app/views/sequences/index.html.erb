@@ -1,0 +1,32 @@
+<h1>Listing sequences</h1>
+
+<table border=1>
+  <tr>
+  <%- @sequences.properties.each do |prop|-%>
+  <th>
+    <b><%= prop.name%>:</b>
+  </th>
+  <%- end -%>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tr>
+
+<% @sequences.each do |sequence| %>
+  <tr>
+  <%- @sequences.properties.each do |prop|-%>
+  <td>
+    <%= sequence[prop.name] %>
+  </td>
+  <%- end -%>
+    <td><%= link_to 'Show', sequence %></td>
+    <td><%= link_to 'Edit', edit_sequence_path(sequence) %></td>
+    <td><%= link_to 'Destroy', sequence, :confirm => 'Are you sure?', :method => :delete %></td>
+  </tr>
+<% end %>
+</table>
+
+<br />
+
+<%= link_to 'New Sequence', new_sequence_path %>
+<%= link_to 'Back', root_path %>
