@@ -36,6 +36,10 @@ gem 'dm-observer',          DM_VERSION
 
 gem 'fastercsv'
 gem 'curb'
+
+gem 'dm-devise', '1.4.0'
+
+gem 'web-app-theme', '0.6.2'
 group(:development, :test) do
 
   # Uncomment this if you want to use rspec for testing your application
