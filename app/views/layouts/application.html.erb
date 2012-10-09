@@ -12,9 +12,10 @@
       <h1><a href="/">Disorder Consensus</a></h1>
       <div id="user-navigation">
         <ul class="wat-cf">
-          <li><a href="#"><%= t("web-app-theme.profile", :default => "Profile") %></a></li>
-          <li><a href="#"><%= t("web-app-theme.settings", :default => "Settings") %></a></li>
+          <!--li><a href="#"><%= t("web-app-theme.profile", :default => "Profile") %></a></li>
+          <li><a href="#"><%= t("web-app-theme.settings", :default => "Settings") %></a></li>-->
           <%-if current_user%>
+            <li><%=link_to("Profile", edit_user_registration_path, :class=>"web-app-theme.logout")%></li>
             <li><%=link_to("Logout(#{current_user.first_name})", destroy_user_session_path, :method=> :delete, :class=>"web-app-theme.logout")%></li>
           <%-end%>
         </ul>
