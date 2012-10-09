@@ -35,7 +35,8 @@ gem 'dm-timestamps',        DM_VERSION
 gem 'dm-observer',          DM_VERSION
 
 gem 'fastercsv'
-gem 'curb'
+gem 'curb'  #using this for RONN
+gem 'bio'   #bioruby
 
 gem 'dm-devise', '1.4.0'
 
