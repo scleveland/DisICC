@@ -31,6 +31,7 @@ GEM
     addressable (2.2.6)
     arel (2.0.10)
     bcrypt-ruby (3.0.1)
+    bio (1.4.3)
     builder (2.1.2)
     curb (0.8.0)
     data_objects (0.10.8)
@@ -152,6 +153,7 @@ DEPENDENCIES
   actionmailer (~> 3.0.1)
   actionpack (~> 3.0.1)
   activesupport (~> 3.0.1)
+  bio
   curb
   dm-aggregates (~> 1.0.2)
   dm-constraints (~> 1.0.2)
