@@ -4,10 +4,10 @@ class Sequence
   include DataMapper::Resource
   
   property :seq_id, Serial
-  property :seq_name, String, :required => true
-  property :sequence, Text, :required => false
-  property :seq_type, String, :required => true
-  property :seq_accession, String, :required => true
+  property :seq_name, String, :required => true, :length => 256
+  property :sequence, Text, :required => true
+  property :seq_type, String, :required => false
+  property :seq_accession, String, :required => false
   property :abrev_name, String, :required => false
   property :disorder_percent, Integer, :required => false
   property :alternate_name, String, :required => false
@@ -15,6 +15,29 @@ class Sequence
   
   #has n, :a_asequences
   #has n, :disorder
+  
+  # create_sequence_from_fasta
+  # This reads a fasta file and stores the sequences in the database if it doesn't already 
+  # exist.  This means that the sequence and definition must match exactly otherwise a new
+  # instance will be stored.
+  #
+  # @example Sequence.create_sequences_from_fasta("temp/myFastaFile.fa")
+  #
+  # @param[String] fasta_filename, a path to avalid fasta file with amino acid sequences
+  # 
+  # @author Sean Cleveland
+  # @updated 2012/10/9
+  def self.create_sequences_from_fasta(fasta_filename)
+    file = File.new(fasta_filename, 'r')
+    ff = Bio::FlatFile.new(Bio::FastaFormat, file)
+    ff.each_entry do |f|
+      puts f.definition
+      seq = self.first_or_create(:seq_name=>f.definition, 
+               :abrev_name=>f.definition[0..3],
+               :sequence => f.naseq)
+      puts seq.errors.inspect()
+    end
+  end
   
   def generate_aasequences
     (0..self.sequence.length-1).each do |i|
