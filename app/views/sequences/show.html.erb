@@ -1,6 +1,6 @@
 <p id="notice"><%= notice %></p>
 
-<%- @sequence.properties.each do |prop|-%>
+<%- @sequence.class.properties.each do |prop|-%>
 <p>
   <b><%= prop.name %>:</b>
   <%= @sequence[prop.name] %>
