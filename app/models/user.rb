@@ -11,4 +11,6 @@ class User
   property :first_name, String
   property :last_name, String
   property :login, String
+  
+  has n, :sequences, :through => Resource
 end
