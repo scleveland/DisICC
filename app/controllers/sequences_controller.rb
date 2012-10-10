@@ -13,7 +13,7 @@ class SequencesController < ApplicationController
   # GET /sequences/1
   # GET /sequences/1.xml
   def show
-    @sequence = Sequence.find(params[:id])
+    @sequence = Sequence.get(params[:id])
 
     respond_to do |format|
       format.html # show.html.erb
@@ -36,7 +36,7 @@ class SequencesController < ApplicationController
 
   # GET /sequences/1/edit
   def edit
-    @sequence = Sequence.find(params[:id])
+    @sequence = Sequence.get(params[:id])
   end
 
   # POST /sequences
@@ -58,7 +58,7 @@ class SequencesController < ApplicationController
   # PUT /sequences/1
   # PUT /sequences/1.xml
   def update
-    @sequence = Sequence.find(params[:id])
+    @sequence = Sequence.get(params[:id])
 
     respond_to do |format|
       if @sequence.update_attributes(params[:sequence])
@@ -74,7 +74,7 @@ class SequencesController < ApplicationController
   # DELETE /sequences/1
   # DELETE /sequences/1.xml
   def destroy
-    @sequence = Sequence.find(params[:id])
+    @sequence = Sequence.get(params[:id])
     @sequence.destroy
 
     respond_to do |format|
