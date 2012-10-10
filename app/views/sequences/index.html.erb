@@ -1,6 +1,12 @@
+<script>
+ $(document).ready(function() {
+     $('#sequences').dataTable();
+ } );
+</script>
 <h1>Listing sequences</h1>
 
-<table border=1>
+<table border=1 id="sequences" style="width: 400px; height: 300px;">
+  <thead>
   <tr>
   <%- @sequences.properties.each do |prop|-%>
   <th>
@@ -11,7 +17,8 @@
     <th></th>
     <th></th>
   </tr>
-
+  </thead>
+  <tbody>
 <% @sequences.each do |sequence| %>
   <tr>
   <%- @sequences.properties.each do |prop|-%>
@@ -21,9 +28,10 @@
   <%- end -%>
     <td><%= link_to 'Show', sequence %></td>
     <td><%= link_to 'Edit', edit_sequence_path(sequence) %></td>
-    <td><%= link_to 'Destroy', sequence, :confirm => 'Are you sure?', :method => :delete %></td>
+    <td><%= button_to 'Destroy', sequence, :confirm => 'Are you sure?', :method => :delete %></td>
   </tr>
 <% end %>
+  </tbody>
 </table>
 
 <br />
