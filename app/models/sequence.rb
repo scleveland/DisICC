@@ -11,10 +11,16 @@ class Sequence
   property :abrev_name, String, :required => false
   property :disorder_percent, Integer, :required => false
   property :alternate_name, String, :required => false
-  
+  property :owner, Integer, :required => true, :default => 1
   
   #has n, :a_asequences
-  #has n, :disorder
+  has n, :users, :through =>Resource
+  
+  after :save do
+    u = User.get(self.owner)
+    u.sequences << self
+    u.save
+  end
   
   # create_sequence_from_fasta
   # This reads a fasta file and stores the sequences in the database if it doesn't already 

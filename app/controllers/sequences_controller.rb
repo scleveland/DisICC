@@ -2,7 +2,7 @@ class SequencesController < ApplicationController
   # GET /sequences
   # GET /sequences.xml
   def index
-    @sequences = Sequence.all
+    @sequences = current_user.sequences#Sequence.all
 
     respond_to do |format|
       format.html # index.html.erb
@@ -13,7 +13,7 @@ class SequencesController < ApplicationController
   # GET /sequences/1
   # GET /sequences/1.xml
   def show
-    @sequence = Sequence.get(params[:id])
+    @sequence = current_user.sequences.get(params[:id])#Sequence.get(params[:id])
 
     respond_to do |format|
       format.html # show.html.erb
@@ -36,14 +36,14 @@ class SequencesController < ApplicationController
 
   # GET /sequences/1/edit
   def edit
-    @sequence = Sequence.get(params[:id])
+    @sequence = current_user.sequences.get(params[:id])#Sequence.get(params[:id])
   end
 
   # POST /sequences
   # POST /sequences.xml
   def create
     @sequence = Sequence.new(params[:sequence])
-
+    @sequence.owner = current_user.id
     respond_to do |format|
       if @sequence.save
         format.html { redirect_to(@sequence, :notice => 'Sequence was successfully created.') }
@@ -58,7 +58,7 @@ class SequencesController < ApplicationController
   # PUT /sequences/1
   # PUT /sequences/1.xml
   def update
-    @sequence = Sequence.get(params[:id])
+    @sequence = current_user.sequences.get(params[:id])# Sequence.get(params[:id])
 
     respond_to do |format|
       if @sequence.update_attributes(params[:sequence])
@@ -74,7 +74,7 @@ class SequencesController < ApplicationController
   # DELETE /sequences/1
   # DELETE /sequences/1.xml
   def destroy
-    @sequence = Sequence.get(params[:id])
+    @sequence = current_user.sequences.get(params[:id])#Sequence.get(params[:id])
     @sequence.destroy
 
     respond_to do |format|
