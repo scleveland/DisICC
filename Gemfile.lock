@@ -98,6 +98,9 @@ GEM
     extlib (0.9.15)
     fastercsv (1.5.4)
     i18n (0.5.0)
+    jquery-rails (1.0.19)
+      railties (~> 3.0)
+      thor (~> 0.14)
     json (1.6.5)
     json_pure (1.6.5)
     mail (2.2.19)
@@ -167,6 +170,7 @@ DEPENDENCIES
   dm-types (~> 1.0.2)
   dm-validations (~> 1.0.2)
   fastercsv
+  jquery-rails
   rails (~> 3.0.1)
   railties (~> 3.0.1)
   web-app-theme (= 0.6.2)

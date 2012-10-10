@@ -39,7 +39,7 @@ gem 'curb'  #using this for RONN
 gem 'bio'   #bioruby
 
 gem 'dm-devise', '1.4.0'
-
+gem 'jquery-rails'
 gem 'web-app-theme', '0.6.2'
 group(:development, :test) do
 
