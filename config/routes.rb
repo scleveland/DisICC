@@ -2,7 +2,11 @@ Disicc::Application.routes.draw do
   devise_for :users, :path => "user", :path_names => { :sign_in => 'login', :sign_out => 'logout', :password => 'secret', :confirmation => 'verification', :unlock => 'unblock', :registration => 'register', :sign_up => 'sign_up' }
   resources :users
   resources :page
-  resources :sequences
+  resources :sequences do
+    member do
+      get :run_disorder
+    end
+  end
   resources :a_asequencs
   
   resources :alignments do
@@ -17,6 +21,7 @@ Disicc::Application.routes.draw do
       post :pre_process_fasta_file 
       post :process_fasta_file 
       post :complete_process_fasta_file 
+      post :process_fasta_file_and_save_sequences
     end
      #match 'alignments/:id', :to => 'catalog#display_annotated_alignment'
   end

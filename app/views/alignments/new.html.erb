@@ -1,12 +1,27 @@
-<h2>Add New Alignment</h2>
+<h2>Add New Alignment for Existing Sequences in the System</h2>
 <%= form_tag "pre_process_fasta_file", :multipart => true do%>
   
   <div class="actions">
   Alignment Name:
   <%= text_field_tag("alignment_name") %>
   <br>
-  Sequence Type:
-  <%= select_tag("seq_type", options_for_select(@seq_types)) %>
+  Fasta File to upload(sequences are labeled with abrev names):
+  <%= file_field_tag('datafile')%>
+  <br><br>
+    <%= submit_tag("Upload Alignment") %>
+  </div>
+<% end %>
+
+<%= link_to 'Back', alignments_path %>
+<br>
+<hr>
+<br>
+<h2>Add New Alignment and New Sequences</h2>
+<%= form_tag "process_fasta_file_and_save_sequences", :multipart => true do%>
+  
+  <div class="actions">
+  Alignment Name:
+  <%= text_field_tag("alignment_name") %>
   <br>
   Fasta File to upload(sequences are labeled with abrev names):
   <%= file_field_tag('datafile')%>

@@ -18,8 +18,10 @@ class Sequence
   
   after :save do
     u = User.get(self.owner)
-    u.sequences << self
-    u.save
+    unless  u.sequences.first(:seq_id => self.seq_id)
+      u.sequences << self
+      u.save
+    end
   end
   
   # create_sequence_from_fasta
@@ -31,18 +33,28 @@ class Sequence
   #
   # @param[String] fasta_filename, a path to avalid fasta file with amino acid sequences
   # 
+  # @returns[Array] returns and array of DataMapper sequence objects
   # @author Sean Cleveland
   # @updated 2012/10/9
-  def self.create_sequences_from_fasta(fasta_filename)
+  def self.create_sequences_from_fasta(fasta_filename, owner=1)
+    sequences = []
     file = File.new(fasta_filename, 'r')
     ff = Bio::FlatFile.new(Bio::FastaFormat, file)
     ff.each_entry do |f|
       puts f.definition
-      seq = self.first_or_create(:seq_name=>f.definition, 
-               :abrev_name=>f.definition[0..3],
-               :sequence => f.naseq)
-      puts seq.errors.inspect()
+      sequences << Sequence.create_sequence_from_bioruby_fasta_entry(f, owner=1)
     end
+    sequences
+  end
+  
+  def self.create_sequence_from_bioruby_fasta_entry(fasta_entry, owner=1)
+    seq = self.create(:seq_name=>fasta_entry.definition, 
+             :abrev_name=>fasta_entry.definition[0..3],
+             :sequence => fasta_entry.naseq.gsub('-',''), 
+             :owner=>owner)
+    puts seq.errors.inspect()
+    seq.generate_aasequences()
+    seq
   end
   
   def generate_aasequences

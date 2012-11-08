@@ -248,7 +248,29 @@ class AlignmentsController < ApplicationController
     redirect_to(alignments_path)
   end
   
-  
+  def process_fasta_file_and_save_sequences
+    name = Time.now.to_s + params[:datafile].original_filename
+    directory = "temp_data"
+    new_file = File.join(directory,name)
+    File.open(new_file, "wb"){ |f| f.write(params['datafile'].read)}
+    sequence_list = Sequence.create_sequences_from_fasta(new_file, current_user.id)
+    sequences = Sequence.all(:seq_id => sequence_list.map{|s| s.seq_id})
+    sequences = []
+    file = File.new(new_file, 'r')
+    ff = Bio::FlatFile.new(Bio::FastaFormat, file)
+    order_count = 0
+    ff.each_entry do |f|
+      puts f.definition
+      seq = Sequence.create_sequence_from_bioruby_fasta_entry(f, current_user.id)
+      alignment = Alignment.create(:seq_id => seq.seq_id,
+                        :alignment_name => params[:alignment_name],
+                        :align_order => order_count,
+                        :alignment_sequence =>f.naseq)
+      alignment_to_positions(alignment)   
+      order_count += 1
+    end
+    redirect_to(alignments_path)
+  end
   
   def process_fasta_file
     name = Time.now.to_s + params[:datafile_name]#.original_filename
