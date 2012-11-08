@@ -1,6 +1,12 @@
+<script>
+ $(document).ready(function() {
+     $('#alignments').dataTable();
+ } );
+</script>
 <h1>Listing alignments</h1>
 
-<table>
+<table border=1 id="alignments" style="width: 400px; height: 300px;">
+  <thead>
   <tr>
     <%- @alignments.properties.each do |prop|-%>
       <th>
@@ -13,7 +19,8 @@
     <th></th>
     <th></th>
   </tr>
-
+  </thead>
+  <tbody>
 <% @alignments.each do |alignment| %>
   <tr>
     <%- @alignments.properties.each do |prop|-%>
@@ -31,7 +38,9 @@
     <td><%= link_to 'Edit', edit_alignment_path(alignment) %></td>
     <td><%= link_to 'Destroy', alignment, :confirm => 'Are you sure?', :method => :delete %></td>
   </tr>
+  
 <% end %>
+ </tbody>
 </table>
 
 <br />
