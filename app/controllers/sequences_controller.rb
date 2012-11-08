@@ -58,7 +58,7 @@ class SequencesController < ApplicationController
   # PUT /sequences/1
   # PUT /sequences/1.xml
   def update
-    @sequence = current_user.sequences.get(params[:id])# Sequence.get(params[:id])
+    @sequence = current_user.sequences.first(:seq_id=>params[:id].to_i)# Sequence.get(params[:id])
 
     respond_to do |format|
       if @sequence.update_attributes(params[:sequence])
@@ -74,12 +74,20 @@ class SequencesController < ApplicationController
   # DELETE /sequences/1
   # DELETE /sequences/1.xml
   def destroy
-    @sequence = current_user.sequences.get(params[:id])#Sequence.get(params[:id])
-    @sequence.destroy
+    
+    @sequence = current_user.sequences.first(:seq_id=>params[:id].to_i)#Sequence.get(params[:id])
+    debugger
+    @sequence.destroy!
 
     respond_to do |format|
       format.html { redirect_to(sequences_url) }
       format.xml  { head :ok }
     end
+  end
+  
+  def run_disorder
+    @sequence = current_user.sequences.first(:seq_id=>params[:id].to_i)
+    @sequence.run_and_store_disorder()
+    redirect_to(sequences_url)
   end
 end
