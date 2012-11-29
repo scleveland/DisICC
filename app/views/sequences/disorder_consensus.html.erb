@@ -1,0 +1,54 @@
+<p id="notice"><%= notice %></p>
+<script>
+ $(document).ready(function() {
+     $('#disorder').dataTable();
+     var plot1 = $.jqplot ('chart', [<%=AAsequence.all(:seq_id=>@sequence.seq_id, :order=>[:original_position]).map{|aa| [aa.original_position,aa.disorder_consensus]}%>],{
+       title:'Consensus Disorder Prediction',
+       axesDefaults: {
+         labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+       },
+       axes: {
+         xaxis: {
+           label: "Amino Acid Position",
+           pad: 0
+         },
+         yaxis: {
+           label: "Disorder"
+         }
+      }   ,
+     highlighter: {
+       show: true,
+       sizeAdjust: 7.5
+     },
+     cursor: {
+       show: false
+     }
+     });
+ } );
+ 
+</script>
+<h1>Listing Values for Consensus Disorder:</h1>
+<p>
+Sequence ID: <%= @sequence.seq_id%><br/>
+Sequence Name: <%= @sequence.seq_name%>
+</p>
+<div id="chart"></div>
+<table id='disorder'>
+<thead>
+  <tr>
+    <th>Consensus Disorder Value</th>
+    <th>AA</th>
+    <th>Position</th>
+  </tr>
+</thead>
+<tbody>
+<% AAsequence.all(:seq_id=>@sequence.seq_id, :order=>[:original_position]).each do |aa| %>
+  <tr>
+    <td><%= aa.disorder_consensus%></td>
+    <td><%= aa.amino_acid%></td>
+    <td><%= aa.original_position%></td>
+  </tr>
+<% end %>
+</tbody>
+</table>
+<%= link_to 'Back', sequences_path %>
