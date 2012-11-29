@@ -7,7 +7,7 @@ class Sequence
   property :seq_name, String, :required => true, :length => 256
   property :sequence, Text, :required => true
   property :seq_type, String, :required => false
-  property :seq_accession, String, :required => false
+  property :seq_accession, String, :required => false, :default=>"none"
   property :abrev_name, String, :required => false
   property :disorder_percent, Integer, :required => false
   property :alternate_name, String, :required => false
@@ -15,6 +15,7 @@ class Sequence
   
   #has n, :a_asequences
   has n, :users, :through =>Resource
+  has n, :disorders, 'Disorder'
   
   after :save do
     u = User.get(self.owner)
@@ -47,9 +48,10 @@ class Sequence
     sequences
   end
   
-  def self.create_sequence_from_bioruby_fasta_entry(fasta_entry, owner=1)
+  def self.create_sequence_from_bioruby_fasta_entry(fasta_entry, seq_type, owner=1)
     seq = self.create(:seq_name=>fasta_entry.definition, 
              :abrev_name=>fasta_entry.definition[0..3],
+             :seq_type=>seq_type,
              :sequence => fasta_entry.naseq.gsub('-',''), 
              :owner=>owner)
     puts seq.errors.inspect()
@@ -115,26 +117,36 @@ class Sequence
   #### DISORDER ####
   
   def generate_iupred_disorder
-    res = `./lib/disorder_apps/iupred/iupred_mac #{self.generate_fasta_file} long`
-    filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+"_iupred.fasta"
-    f = File.new(filepath, "w+")
-    f.write(res)
-    f.close
-    self.store_iupred(filepath)
+    unless self.disorders.first(:disorder_type=>"IUPred")
+      res = `./lib/disorder_apps/iupred/iupred_mac #{self.generate_fasta_file} long`
+      filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+"_iupred.fasta"
+      f = File.new(filepath, "w+")
+      f.write(res)
+      f.close
+      self.store_iupred(filepath)
+    else
+      puts "IUPred Already Stored!***********************"
+    end
   end
   
   def generate_iupred_disorder_short
-    res = `./lib/disorder_apps/iupred/iupred_mac #{self.generate_fasta_file} short`
-    filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+"_iupred_short.fasta"
-    f = File.new(filepath, "w+")
-    f.write(res)
-    f.close
-    self.store_iupred_short(filepath)
+    unless self.disorders.first(:disorder_type=>"IUPred Short")
+      res = `./lib/disorder_apps/iupred/iupred_mac #{self.generate_fasta_file} short`
+      filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+"_iupred_short.fasta"
+      f = File.new(filepath, "w+")
+      f.write(res)
+      f.close
+      self.store_iupred_short(filepath)
+    else
+      puts "IUPred Short Already Stored!***********************"
+    end
   end
   
   def store_iupred(filepath)
     #create a new disorder object
     dis = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"IUPred", :version=>1)
+    self.disorders << dis
+    self.save
     file = File.new(filepath, 'r')
     counter = 1
     aa_count = 0
@@ -146,7 +158,7 @@ class Sequence
         if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count, :amino_acid=>line_array[1])
         #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
         #if aa.amino_acid == line_array[1]  
-          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
         end
         aa_count +=1
       end
@@ -156,37 +168,41 @@ class Sequence
   def store_iupred_short(filepath)
     #create a new disorder object
     dis = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"IUPred Short", :version=>1)
+    self.disorders << dis
+    self.save
     file = File.new(filepath, 'r')
     counter = 1
     aa_count = 0
     while (line = file.gets)
       #puts "#{counter}: #{line}"
       counter = counter + 1
+      puts counter
       if counter > 10
         line_array = line.split(' ')
         if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count, :amino_acid=>line_array[1])
         #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
         #if aa.amino_acid == line_array[1]  
-          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
         end
         aa_count +=1
       end
     end
   end
   
-  def calculate_disorder_consensus(disorder_types)
+  def calculate_disorder_consensus()#disorder_types)
+    dis_ids = self.disorders.map{|k| k.disorder_id}
     AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
       dis_sum = 0
       #disorder_types.each do |dis_type|
-          dis_ids = Disorder.all(:disorder_type=>disorder_types, :seq_id=>self.seq_id).map{|k| k.disorder_id}
-          dvs = DisorderValue.all(:aasequence_id => aa.AAsequence_id, :disorder_id=>dis_ids).map{|c| c.dvalue}
+          #dis_ids = Disorder.all(:disorder_type=>disorder_types, :seq_id=>self.seq_id).map{|k| k.disorder_id}
+          dvs = DisorderValue.all(:a_asequence_id => aa.AAsequence_id, :disorder_id=>dis_ids).map{|c| c.dvalue}
           dis_sum = dvs.sum
-        if disorder_types.include?("DisEMBL Hotloops")
-          dis_sum = dis_sum + 0.38 
-          dis_num = dis_ids.length
-        end
+        # if disorder_types.include?("DisEMBL Hotloops")
+        #   dis_sum = dis_sum + 0.38 
+        #   dis_num = dis_ids.length
+        # end
       #end
-      aa.disorder_consensus = dis_sum/dis_num
+      aa.disorder_consensus = dis_sum/dis_ids.length
       aa.save
     end
   end
@@ -198,25 +214,31 @@ class Sequence
   end
   
   def generate_ronn
-     url ="http://www.strubi.ox.ac.uk/RONN"
-     cur = Curl::Easy.new(url)
-     post_params= "sequence=#{'>'+self.abrev_name}\r\n#{self.sequence}&display_probs=y"
-     cur.http_post(post_params)
-     puts post_params
-     puts cur.body_str.to_s
-     s =cur.body_str.to_s.split('<pre>')
-     a = s[2].split("</pre>")
-     filepath= "temp_data/#{self.abrev_name}_RONN"
-     f = File.new(filepath, "w+")
-     f.write(a[0].to_s)
-     f.close 
-     puts filepath
-     self.store_ronn(filepath)
+    unless self.disorders.first(:disorder_type=>"RONN")
+      url ="http://www.strubi.ox.ac.uk/RONN"
+      cur = Curl::Easy.new(url)
+      post_params= "sequence=#{'>'+self.abrev_name}\r\n#{self.sequence}&display_probs=y"
+      cur.http_post(post_params)
+      puts post_params
+      puts cur.body_str.to_s
+      s =cur.body_str.to_s.split('<pre>')
+      a = s[2].split("</pre>")
+      filepath= "temp_data/#{self.abrev_name}_RONN"
+      f = File.new(filepath, "w+")
+      f.write(a[0].to_s)
+      f.close 
+      puts filepath
+      self.store_ronn(filepath)
+    else
+      puts "RONN Already Stored!***********************"
+    end
    end
 
    def store_ronn(filepath)
      #create a new disorder object
      dis = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"RONN", :version=>1)
+     self.disorders << dis
+     self.save
      file = File.new(filepath, 'r')
      counter = 1
      aa_count = 0
@@ -228,7 +250,7 @@ class Sequence
          if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
          #if aa.amino_acid == line_array[1]  
-           DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
+           DisorderValue.create(:disorder_id => dis.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
          end
          aa_count +=1
        end
@@ -250,29 +272,35 @@ class Sequence
    end
 
    def generate_pondr_fit
-     url ="http://www.disprot.org/action_predict.php"
-     cur = Curl::Easy.new(url)
-     post_params= "PONDRFIT=yes&native_sequence=#{'>'+self.abrev_name}\r\n#{self.sequence}&fontsize=small&plotwidth=7&xticincrement=100&plotheight=auto&filetype=eps&legend=full"
-     cur.http_post(post_params)
-     puts post_params
-     puts cur.body_str.to_s
-     s =cur.body_str.to_s.split('IUPRED SHORT DATA</a><br><a href=')
-     f = s[1].split(">PONDR-FIT DATA")
-     a = f[0].to_s.gsub('"','')
-     file_url="http://www.disprot.org/" + a
-     file_cur= Curl::Easy.new(file_url)
-     file_cur.http_post()
-     filepath= "temp_data/#{self.abrev_name}_PondrFit"
-     f = File.new(filepath, "w+")
-     f.write(file_cur.body_str)
-     f.close 
-     puts filepath
-     self.store_pondr_fit(filepath)
+     unless self.disorders.first(:disorder_type=>"PONDR Fit")
+       url ="http://www.disprot.org/action_predict.php"
+       cur = Curl::Easy.new(url)
+       post_params= "PONDRFIT=yes&native_sequence=#{'>'+self.abrev_name}\r\n#{self.sequence}&fontsize=small&plotwidth=7&xticincrement=100&plotheight=auto&filetype=eps&legend=full"
+       cur.http_post(post_params)
+       puts post_params
+       puts cur.body_str.to_s
+       s =cur.body_str.to_s.split('IUPRED SHORT DATA</a><br><a href=')
+       f = s[1].split(">PONDR-FIT DATA")
+       a = f[0].to_s.gsub('"','')
+       file_url="http://www.disprot.org/" + a
+       file_cur= Curl::Easy.new(file_url)
+       file_cur.http_post()
+       filepath= "temp_data/#{self.abrev_name}_PondrFit"
+       f = File.new(filepath, "w+")
+       f.write(file_cur.body_str)
+       f.close 
+       puts filepath
+       self.store_pondr_fit(filepath)
+     else
+       puts "IUPred Already Stored!***********************"
+    end
    end
 
    def store_pondr_fit(filepath)
      #create a new disorder object
      dis = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"PONDR Fit", :version=>1)
+     self.disorders << dis
+     self.save
      file = File.new(filepath, 'r')
      counter = 1
      aa_count = 0
@@ -283,7 +311,7 @@ class Sequence
          if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
          #if aa.amino_acid == line_array[1]  
-           DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+           DisorderValue.create(:disorder_id => dis.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
          end
          aa_count +=1
      end
@@ -338,8 +366,8 @@ class Sequence
          if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
          #if aa.amino_acid == line_array[1]  
-           DisorderValue.create(:disorder_id => dis_coil.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[0].to_f) 
-           DisorderValue.create(:disorder_id => dis_hl.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
+           DisorderValue.create(:disorder_id => dis_coil.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[0].to_f) 
+           DisorderValue.create(:disorder_id => dis_hl.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
          end
          aa_count +=1
        end

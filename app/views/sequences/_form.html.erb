@@ -16,19 +16,23 @@
   <br>
   <%= f.text_field("seq_name") %>
   <br><br>
+  Sequence Abreviation Name:
+  <br>
+  <%= f.text_field("abrev_name") %>
+  <br><br>
   Accession:
   <br>
   <%= f.text_field("seq_accession") %>
   <br><br>
-  Protein Type(L,N or P)
+  Protein Type()
   <br>
-  <%=# f.select("seq_type", options_for_select(@seq_types)) 
+  <%=f.text_field("seq_type")# f.select("seq_type", options_for_select(@seq_types)) 
   %>
   <br><br>
   Sequence (Amino Acids):
   <BR>
   <%= f.text_area("sequence", :rows => 15, :cols => 80) %>
   <br><br>
-  <%= f.submit %>
+  <%= f.submit("Submit", :onClick=>'$( "#dialog" ).dialog("open")') %>
   </div>
 <% end %>

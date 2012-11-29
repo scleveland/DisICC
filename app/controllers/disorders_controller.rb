@@ -13,7 +13,7 @@ class DisordersController < ApplicationController
   # GET /disorders/1
   # GET /disorders/1.xml
   def show
-    @disorder = Disorder.find(params[:id])
+    @disorder = Disorder.get(params[:id])
 
     respond_to do |format|
       format.html # show.html.erb
