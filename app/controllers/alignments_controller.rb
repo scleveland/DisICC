@@ -2,7 +2,7 @@ class AlignmentsController < ApplicationController
   # GET /alignments
   # GET /alignments.xml
   def index
-    @alignments = Alignment.all
+    @alignments = Alignment.all(:seq_id=>current_user.sequences.map{|s| s.seq_id})
 
     respond_to do |format|
       format.html # index.html.erb
@@ -72,8 +72,9 @@ class AlignmentsController < ApplicationController
   # DELETE /alignments/1
   # DELETE /alignments/1.xml
   def destroy
-    @alignment = Alignment.find(params[:id])
-    @alignment.destroy
+    @alignment = Alignment.get(params[:id])
+    alignments = Alignment.all(:alignment_name => @alignment.alignment_name)
+    alignments.destroy
 
     respond_to do |format|
       format.html { redirect_to(alignments_url) }
@@ -261,13 +262,26 @@ class AlignmentsController < ApplicationController
     order_count = 0
     ff.each_entry do |f|
       puts f.definition
-      seq = Sequence.create_sequence_from_bioruby_fasta_entry(f, current_user.id)
+      seq = Sequence.create_sequence_from_bioruby_fasta_entry(f, params[:seq_type],current_user.id)
       alignment = Alignment.create(:seq_id => seq.seq_id,
                         :alignment_name => params[:alignment_name],
                         :align_order => order_count,
                         :alignment_sequence =>f.naseq)
       alignment_to_positions(alignment)   
       order_count += 1
+      begin
+        seq.run_and_store_disorder()
+        
+      rescue Exception => e  
+        puts self.abrev_name + " Diorder Generation Failed"
+        puts e.message
+      end
+      begin
+        seq.calculate_disorder_consensus()
+      rescue Exception => e  
+        puts self.abrev_name + " Diorder Consensus Calculation Failed"
+        puts e.message
+      end
     end
     redirect_to(alignments_path)
   end
@@ -391,7 +405,7 @@ class AlignmentsController < ApplicationController
         AlignmentPosition.all(:alignment_id => alignment.align_id, 
                      :order => [:alignment_position_id.asc]).each do |position|
          if position.position == @cur_position
-            @amino_acid = AAsequence.first(:AAsequence_id => position.aasequence_id)
+            @amino_acid = AAsequence.first(:id => position.aasequence_id)
             @alignment_color_array[@cur_position] = residue_color(@amino_acid.disorder_consensus, 0)
             if @contact_consensus_array[@cur_position].nil?
               @contact_consensus_array[@cur_position] = 0
@@ -404,7 +418,7 @@ class AlignmentsController < ApplicationController
                          @alignment_color_array[@cur_position] = "FFFFFF"
                          @cur_position += 1
             end
-            @amino_acid = AAsequence.first(:AAsequence_id => position.aasequence_id)
+            @amino_acid = AAsequence.first(:id => position.aasequence_id)
             @alignment_color_array[@cur_position] = residue_color(@amino_acid.disorder_consensus, 0)
             if @contact_consensus_array[@cur_position].nil?
                @contact_consensus_array[@cur_position] = 0
@@ -472,7 +486,7 @@ class AlignmentsController < ApplicationController
        AlignmentPosition.all(:alignment_id => alignment.align_id, 
                     :order => [:alignment_position_id.asc]).each do |position|
         if position.position == @cur_position
-           @amino_acid = AAsequence.first(:AAsequence_id => position.aasequence_id)
+           @amino_acid = AAsequence.first(:id => position.aasequence_id)
            @alignment_color_array[@cur_position] = residue_color(@amino_acid.disorder_consensus, @amino_acid.contact_consensus)
            if @contact_consensus_array[@cur_position].nil?
              @contact_consensus_array[@cur_position] = 0
@@ -485,7 +499,7 @@ class AlignmentsController < ApplicationController
                         @alignment_color_array[@cur_position] = "FFFFFF"
                         @cur_position += 1
            end
-           @amino_acid = AAsequence.first(:AAsequence_id => position.aasequence_id)
+           @amino_acid = AAsequence.first(:id => position.aasequence_id)
            @alignment_color_array[@cur_position] = residue_color(@amino_acid.disorder_consensus, @amino_acid.contact_consensus)
            if @contact_consensus_array[@cur_position].nil?
               @contact_consensus_array[@cur_position] = 0

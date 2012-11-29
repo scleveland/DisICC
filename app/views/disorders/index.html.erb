@@ -1,21 +1,38 @@
+<script>
+ $(document).ready(function() {
+     $('#disorder').dataTable();
+ } );
+</script>
 <h1>Listing disorders</h1>
 
-<table>
+<table id='disorder'>
+<thead>
   <tr>
+    <th>Disorder Id</th>
+    <th>Disorder Type</th>
+    <th>Sequence ID</th>
+    <th>Sequence Name</th>
     <th></th>
     <th></th>
     <th></th>
   </tr>
-
+</thead>
+<tbody>
 <% @disorders.each do |disorder| %>
   <tr>
+    <td><%= disorder.id%></td>
+    <td><%= disorder.disorder_type%></td>
+    <td><%= disorder.sequence.seq_id%></td>
+    <td><%= disorder.sequence.seq_name%></td>
     <td><%= link_to 'Show', disorder %></td>
     <td><%= link_to 'Edit', edit_disorder_path(disorder) %></td>
     <td><%= link_to 'Destroy', disorder, :confirm => 'Are you sure?', :method => :delete %></td>
   </tr>
 <% end %>
+</tbody>
 </table>
 
 <br />
-
+<br />
 <%= link_to 'New Disorder', new_disorder_path %>
+<br /><br />

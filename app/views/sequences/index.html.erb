@@ -9,10 +9,13 @@
   <thead>
   <tr>
   <%- @sequences.properties.each do |prop|-%>
-  <th>
-    <b><%= prop.name%>:</b>
-  </th>
+    <%-if prop.name.to_s != 'sequence'%>
+      <th>   
+        <b><%= prop.name%>:</b> 
+      </th>
+    <%-end%>
   <%- end -%>
+    <th></th>
     <th></th>
     <th></th>
     <th></th>
@@ -23,11 +26,16 @@
 <% @sequences.each do |sequence| %>
   <tr>
   <%- @sequences.properties.each do |prop|-%>
-  <td>
-    <%= sequence[prop.name] %>
-  </td>
+    <%-if prop.name.to_s != 'sequence'%>
+      <td>
+    
+          <%= sequence[prop.name] %>
+    
+      </td>
+    <%-end%> 
   <%- end -%>
     <td><%= link_to 'Show', sequence %></td>
+    <td><%= link_to 'Consensus', disorder_consensus_sequence_path(sequence) %></td>
     <td><%= link_to 'Edit', edit_sequence_path(sequence) %></td>
     <td><%= link_to 'Run Disorder', run_disorder_sequence_path(sequence) %></td>
     <td><%= button_to 'Destroy', sequence, :confirm => 'Are you sure?', :method => :delete %></td>
@@ -36,7 +44,8 @@
   </tbody>
 </table>
 
-<br />
+<br /><br /><br />
 
 <%= link_to 'New Sequence', new_sequence_path %>
 <%= link_to 'Back', root_path %>
+<br /><br />

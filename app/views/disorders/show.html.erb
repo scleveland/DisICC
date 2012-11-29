@@ -1,5 +1,56 @@
 <p id="notice"><%= notice %></p>
-
-
+<script>
+ $(document).ready(function() {
+     $('#disorder').dataTable();
+     var plot1 = $.jqplot ('chart', [<%=@disorder.disorder_values(:order=>[:id]).map{|dv| [dv.a_asequence.original_position,dv.dvalue]}%>],{
+       title:'<%=@disorder.disorder_type%> Disorder Prediction',
+       axesDefaults: {
+         labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+       },
+       axes: {
+         xaxis: {
+           label: "Amino Acid Position",
+           pad: 0
+         },
+         yaxis: {
+           label: "Disorder"
+         }
+      }   ,
+     highlighter: {
+       show: true,
+       sizeAdjust: 7.5
+     },
+     cursor: {
+       show: false
+     }
+     });
+ } );
+ 
+</script>
+<h1>Listing Values for Disorder:</h1>
+<p>ID: <%=@disorder.id%><br/>
+Type: <%= @disorder.disorder_type%><br/>
+Sequence ID: <%= @disorder.sequence.seq_id%><br/>
+Sequence Name: <%= @disorder.sequence.seq_name%>
+</p>
+<div id="chart"></div>
+<table id='disorder'>
+<thead>
+  <tr>
+    <th>Disorder Value</th>
+    <th>AA</th>
+    <th>Position</th>
+  </tr>
+</thead>
+<tbody>
+<% @disorder.disorder_values.each do |dv| %>
+  <tr>
+    <td><%= dv.dvalue%></td>
+    <td><%= dv.a_asequence.amino_acid%></td>
+    <td><%= dv.a_asequence.original_position%></td>
+  </tr>
+<% end %>
+</tbody>
+</table>
 <%= link_to 'Edit', edit_disorder_path(@disorder) %> |
 <%= link_to 'Back', disorders_path %>

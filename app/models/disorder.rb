@@ -1,9 +1,13 @@
 class Disorder
   include DataMapper::Resource
   
-  property :disorder_id, Serial
-  property :seq_id, Integer, :required => true
+  property :id, Serial
+  #property :seq_id, Integer, :required => true
   property :disorder_type, String, :required => true
   property :version, Integer, :required => false
-  #has 1, :sequence
+  property :seq_id, Integer
+  
+  alias :disorder_id :id
+  belongs_to :sequence, 'Sequence'
+  has n, :disorder_values, 'DisorderValue'
 end

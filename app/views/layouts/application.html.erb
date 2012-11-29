@@ -3,11 +3,22 @@
 <head>
   <title>Disorder Consensus</title>
   <%= stylesheet_link_tag "web-app-theme/base", "web-app-theme/themes/red/style", "web-app-theme/override", :cache => true %>
-  <%= javascript_include_tag :defaults, :cache => true %>
+  <%= javascript_include_tag :defaults, 'jquery.jqplot.min.js','jqplot.cursor.js','jqplot.highlighter.js', :cache => true %>
 
   <script src="//ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.9.1/themes/base/jquery-ui.css" />
+  <script src="http://code.jquery.com/ui/1.9.1/jquery-ui.js"></script>
   <link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css"/>
   <%= csrf_meta_tag %>
+  <script>
+      $(function() {
+          $( "#dialog" ).dialog({
+                      height: 140,
+                      modal: true
+                  });
+      $( "#dialog" ).dialog("close")
+      });
+  </script>
 </head>
 <body>
   <div id="container">
@@ -47,6 +58,10 @@
         <%= yield :sidebar %>
       </div>
     </div>    
+  </div>
+  <div id="dialog" title="Science Is Happening Be Patient.">
+      <p><center><%=image_tag("loader.gif")%>
+      </center></p>
   </div>
 </body>
 </html>

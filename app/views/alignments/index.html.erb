@@ -9,33 +9,30 @@
   <thead>
   <tr>
     <%- @alignments.properties.each do |prop|-%>
+      <%-if prop.name.to_s != 'alignment_sequence' && prop.name.to_s != 'seq_id' && prop.name.to_s != 'align_order'  &&  prop.name.to_s != 'fasta_title' %>
       <th>
         <b><%= prop.name%>:</b>
       </th>
+      <%- end -%>
     <%- end -%>
     <th></th>
     <th></th>
-    <th></th>
-    <th></th>
-    <th></th>
+
   </tr>
   </thead>
   <tbody>
-<% @alignments.each do |alignment| %>
+<% @alignments.all(:order=>[:alignment_name], :align_order=>0).each do |alignment| %>
   <tr>
     <%- @alignments.properties.each do |prop|-%>
+     <%-if prop.name.to_s != 'alignment_sequence' && prop.name.to_s != 'seq_id' && prop.name.to_s != 'align_order'  &&  prop.name.to_s != 'fasta_title' %>
     <td>
-      <%= link_to alignment[prop.name], display_annotated_alignment_alignment_path(alignment.align_id) %>
+      <%= alignment[prop.name] %>
     </td>
     <%- end -%>
-    <td>
-      <%= link_to "Compensatory", display_compensatory_annotated_alignment_alignment_path(alignment.align_id) %>
-    </td>
+    <%- end -%>
     <td>
       <%= link_to "Disorder", display_disorder_annotated_alignment_alignment_path(alignment.align_id) %>
     </td>
-    <td><%= link_to 'Show', alignment %></td>
-    <td><%= link_to 'Edit', edit_alignment_path(alignment) %></td>
     <td><%= link_to 'Destroy', alignment, :confirm => 'Are you sure?', :method => :delete %></td>
   </tr>
   
@@ -44,6 +41,7 @@
 </table>
 
 <br />
-
+<br />
 <%= link_to 'New Alignment', new_alignment_path %>
 <%= link_to 'Back', root_path %>
+<br /><br />

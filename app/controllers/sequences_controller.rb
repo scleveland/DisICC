@@ -46,6 +46,18 @@ class SequencesController < ApplicationController
     @sequence.owner = current_user.id
     respond_to do |format|
       if @sequence.save
+        begin
+          @sequence.run_and_store_disorder()
+        rescue Exception => e  
+          puts @sequence.abrev_name + " Diorder Generation Failed"
+          puts e.message
+        end
+        begin
+          @sequence.calculate_disorder_consensus()
+        rescue Exception => e  
+          puts @sequence.abrev_name + " Diorder Consensus Calculation Failed"
+          puts e.message
+        end
         format.html { redirect_to(@sequence, :notice => 'Sequence was successfully created.') }
         format.xml  { render :xml => @sequence, :status => :created, :location => @sequence }
       else
@@ -85,9 +97,32 @@ class SequencesController < ApplicationController
     end
   end
   
+  def disorder_consensus
+    @sequence = current_user.sequences.get(params[:id])
+    respond_to do |format|
+      format.html 
+    end
+  end
+  
+  def download_disorder
+    @sequence = current_user.sequences.get(params[:id])
+    csv_string = CSV.generate do |csv|
+      csv << ['position','amino acid','disorder consensus'] + @sequence.disorders.all(:order=>[:disorder_type]).map{|d| d.disorder_type}
+      AAsequence.all(:seq_id=>@sequence.seq_id, :order=>[:original_position]).each do |aa|
+        csv << [(aa.original_position+1).to_s,aa.amino_acid,aa.disorder_consensus] + @sequence.disorders.all(:order=>[:disorder_type]).map{|d| d.disorder_values.first(:a_asequence_id=>aa.id).dvalue}
+      end
+    end
+
+    filename = @sequence.seq_name + ".csv"
+    send_data(csv_string,
+    :type => 'text/csv; charset=utf-8; header=present',
+    :filename => filename)
+  end
+  
   def run_disorder
     @sequence = current_user.sequences.first(:seq_id=>params[:id].to_i)
     @sequence.run_and_store_disorder()
+    @sequence.calculate_disorder_consensus()
     redirect_to(sequences_url)
   end
 end
