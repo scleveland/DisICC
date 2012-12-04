@@ -354,7 +354,11 @@ class Sequence
    def store_disembl(filepath)
      #create a new disorder object
      dis_hl = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"DisEMBL Hotloops", :version=>1)
+     self.disorders << dis_hl
+     self.save
      dis_coil = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"DisEMBL Coils", :version=>1)
+     self.disorders << dis_coil
+     self.save
      file = File.new(filepath, 'r')
      counter = 1
      aa_count = 0
