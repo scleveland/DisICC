@@ -2,7 +2,7 @@ class SequencesController < ApplicationController
   # GET /sequences
   # GET /sequences.xml
   def index
-    @sequences = current_user.sequences#Sequence.all
+    @sequences = Sequence.all#current_user.sequences#Sequence.all
 
     respond_to do |format|
       format.html # index.html.erb
@@ -13,7 +13,7 @@ class SequencesController < ApplicationController
   # GET /sequences/1
   # GET /sequences/1.xml
   def show
-    @sequence = current_user.sequences.get(params[:id])#Sequence.get(params[:id])
+    @sequence = Sequence.get(params[:id])#current_user.sequences.get(params[:id])#Sequence.get(params[:id])
 
     respond_to do |format|
       format.html # show.html.erb
@@ -36,7 +36,7 @@ class SequencesController < ApplicationController
 
   # GET /sequences/1/edit
   def edit
-    @sequence = current_user.sequences.get(params[:id])#Sequence.get(params[:id])
+    @sequence = Sequence.get(params[:id])#current_user.sequences.get(params[:id])#Sequence.get(params[:id])
   end
 
   # POST /sequences
@@ -70,7 +70,7 @@ class SequencesController < ApplicationController
   # PUT /sequences/1
   # PUT /sequences/1.xml
   def update
-    @sequence = current_user.sequences.first(:seq_id=>params[:id].to_i)# Sequence.get(params[:id])
+    @sequence = Sequence.first(:seq_id=>params[:id].to_i)#current_user.sequences.first(:seq_id=>params[:id].to_i)# Sequence.get(params[:id])
 
     respond_to do |format|
       if @sequence.update_attributes(params[:sequence])
@@ -87,7 +87,7 @@ class SequencesController < ApplicationController
   # DELETE /sequences/1.xml
   def destroy
     
-    @sequence = current_user.sequences.first(:seq_id=>params[:id].to_i)#Sequence.get(params[:id])
+    @sequence = Sequence.first(:seq_id=>params[:id].to_i) #current_user.sequences.first(:seq_id=>params[:id].to_i)#Sequence.get(params[:id])
     debugger
     @sequence.destroy!
 
@@ -98,7 +98,7 @@ class SequencesController < ApplicationController
   end
   
   def disorder_consensus
-    @sequence = current_user.sequences.get(params[:id])
+    @sequence = Sequence.get(params[:id])#current_user.sequences.get(params[:id])
     respond_to do |format|
       format.html 
     end
@@ -120,7 +120,7 @@ class SequencesController < ApplicationController
   end
   
   def run_disorder
-    @sequence = current_user.sequences.first(:seq_id=>params[:id].to_i)
+    @sequence = Sequence.first(:seq_id=>params[:id].to_i)#current_user.sequences.first(:seq_id=>params[:id].to_i)
     @sequence.run_and_store_disorder()
     @sequence.calculate_disorder_consensus()
     redirect_to(sequences_url)
