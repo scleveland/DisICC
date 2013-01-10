@@ -37,7 +37,7 @@ class Alignment
     string = "./lib/AlignAssess_wShorterID #{filename} P"
     seq_array = Array.new
     if system(string)
-      seq_id_array = self.sequences.map{|s| s.seq_id}
+      seq_id_array = self.sequences.map{|s| s.id}
       new_filename = filename + "_assess"
       f = File.new(new_filename, "r")
       flag = false
