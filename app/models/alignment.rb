@@ -102,7 +102,7 @@ class Alignment
      end
      thread_array=[]
      thread_num.times do |i|
-       thread_array = Thread.new{
+       thread_array[i] = Thread.new{
          while alignment_array.length > 0 do
            this_seq_id = alignment_array.pop
            puts "Starting Caps2 #{this_seq_id}"
