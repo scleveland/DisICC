@@ -166,7 +166,7 @@ class Alignment
     puts seq.abrev_name+":"+pids.count.to_s
     puts pids.map{|p| p.seq2_sequence.seq_name}.join(',')
     pids.each do |pid|
-      if pid.seq2_id != seq.seq_id
+      if pid.seq2_id != seq.id
         print Sequence.get(pid.seq2_id).abrev_name + ":" + pid.percent_id.to_s + ","
         fasta_string = fasta_string + Alignment.first(:alignment_name=>pid.alignment_name, :seq_id=>pid.seq2_id).fasta_alignment_string("pid:#{pid.percent_id}")
       end
