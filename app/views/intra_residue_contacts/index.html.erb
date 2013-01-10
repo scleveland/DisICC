@@ -1,20 +1,29 @@
 <h1>Listing intra_residue_contacts</h1>
-
-<table>
+<script>
+ $(document).ready(function() {
+     $('#contacts').dataTable();
+ } );
+</script>
+<table id ='contacts'>
+  <thead>
   <tr>
-    <th></th>
-    <th></th>
-    <th></th>
+    <th>ID</th>
+    <th>Name</th>
+    <th>Type</th>
   </tr>
-
-<% @intra_residue_contacts.each do |intra_residue_contact| %>
+  </thead>
+  <tbody>
+<% @sequences.each do |seq| %>
   <tr>
-    <td><%= link_to 'Show', intra_residue_contact %></td>
-    <td><%= link_to 'Edit', edit_intra_residue_contact_path(intra_residue_contact) %></td>
-    <td><%= link_to 'Destroy', intra_residue_contact, :confirm => 'Are you sure?', :method => :delete %></td>
+    <td><%= seq.id %></td>
+    <td><%= seq.seq_name %></td>
+    <td><%= seq.seq_type %></td>
   </tr>
 <% end %>
+</tbody>
 </table>
+
+<br />
 
 <br />
 

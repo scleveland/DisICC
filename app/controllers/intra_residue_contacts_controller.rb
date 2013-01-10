@@ -2,7 +2,7 @@ class IntraResidueContactsController < ApplicationController
   # GET /intra_residue_contacts
   # GET /intra_residue_contacts.xml
   def index
-    @intra_residue_contacts = IntraResidueContact.all
+    @sequences = Sequence.all(:id=>IntraResidueContact.all(:fields=>[:seq_id], :unique=>true, :order=>[:seq_id]).map{|i| i.seq_id})
 
     respond_to do |format|
       format.html # index.html.erb

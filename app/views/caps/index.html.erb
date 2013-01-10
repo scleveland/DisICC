@@ -1,19 +1,29 @@
 <h1>Listing caps</h1>
-
-<table>
+<script>
+ $(document).ready(function() {
+     $('#caps').dataTable();
+ } );
+</script>
+<table id="caps">
+  <thead>
   <tr>
-    <th></th>
-    <th></th>
-    <th></th>
+    <th>SeqID</th>
+    <th>Name</th>
+    <th>Type</th>
   </tr>
-
+  </thead>
+  <tbody>
 <% @caps.each do |cap| %>
+  <% seq = cap.sequence %>
+  <%unless seq.nil?%>
   <tr>
-    <td><%= link_to 'Show', cap %></td>
-    <td><%= link_to 'Edit', edit_cap_path(cap) %></td>
-    <td><%= link_to 'Destroy', cap, :confirm => 'Are you sure?', :method => :delete %></td>
+    <td><%= seq.id %></td>
+    <td><%= seq.seq_name %></td>
+    <td><%= seq.seq_type %></td>
   </tr>
+<%end%>
 <% end %>
+</tbody>
 </table>
 
 <br />

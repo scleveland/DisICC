@@ -2,7 +2,7 @@ class AlignmentsController < ApplicationController
   # GET /alignments
   # GET /alignments.xml
   def index
-    @alignments = Alignment.all(:seq_id=>current_user.sequences.map{|s| s.seq_id})
+    @alignments = Alignment.all#(:seq_id=>current_user.sequences.map{|s| s.seq_id})
 
     respond_to do |format|
       format.html # index.html.erb
@@ -386,12 +386,13 @@ class AlignmentsController < ApplicationController
      @max_count = 0
      @contact_consensus_array = Array.new
      @seq_contact_count = 0
+     @alignment_name = Alignment.get(params[:id]).alignment_name
      Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, 
                                  :order => [:align_order.asc]).each do |alignment|
        #if AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gt => 0.75).count > 0
          @seq_contact_count += 1
        #end
-       puts Sequence.first(:seq_id => alignment.seq_id).abrev_name + ":" + AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gt => 0.75).count.to_s
+       puts Sequence.first(:id => alignment.seq_id).abrev_name + ":" + AAsequence.all(:id => alignment.seq_id, :contact_consensus.gt => 0.75).count.to_s
      end
 
      Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, 
@@ -429,7 +430,7 @@ class AlignmentsController < ApplicationController
           end
           @cur_position += 1
           end                 
-          puts @display_hash["name"] = Sequence.first(:seq_id => alignment.seq_id).abrev_name 
+          puts @display_hash["name"] = Sequence.first(:id => alignment.seq_id).abrev_name 
           @display_hash["alignment"] = @alignment_color_array
           @display_array << @display_hash
         if @max_count < @cur_position

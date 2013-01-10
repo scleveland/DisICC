@@ -19,15 +19,17 @@
 </thead>
 <tbody>
 <% @disorders.each do |disorder| %>
+  <% unless disorder.sequence.nil?%>
   <tr>
     <td><%= disorder.id%></td>
     <td><%= disorder.disorder_type%></td>
-    <td><%= disorder.sequence.seq_id%></td>
+    <td><%= disorder.sequence.id%></td>
     <td><%= disorder.sequence.seq_name%></td>
     <td><%= link_to 'Show', disorder %></td>
     <td><%= link_to 'Edit', edit_disorder_path(disorder) %></td>
     <td><%= link_to 'Destroy', disorder, :confirm => 'Are you sure?', :method => :delete %></td>
   </tr>
+  <%end%>
 <% end %>
 </tbody>
 </table>

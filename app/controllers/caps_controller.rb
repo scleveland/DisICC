@@ -2,8 +2,8 @@ class CapsController < ApplicationController
   # GET /caps
   # GET /caps.xml
   def index
-    @caps = Cap.all
-
+    @caps =  Caps.all(:fields=>[:seq_id], :unique=>true, :order=>[:seq_id])
+    #@sequences = Sequence.all
     respond_to do |format|
       format.html # index.html.erb
       format.xml  { render :xml => @caps }
