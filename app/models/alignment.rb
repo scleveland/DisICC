@@ -94,11 +94,17 @@ class Alignment
      self.run_align_assess
      Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
      alignments = Alignment.all(:alignment_name => self.alignment_name)
+     longest_alignment_length=0
+     alignments.each do |alignment|
+       if alignment.alignment_sequence.length > longest_alignment_length
+          longest_alignment_length = alignment.alignment_sequence.length
+       end
+     end
      alignment_array = []
      alignments.each do |alignment|
        alignment_array << alignment.seq_id
        Dir.mkdir("temp_data/#{self.alignment_name}_#{alignment.seq_id}") unless File.directory?("temp_data/#{self.alignment_name}_#{alignment.seq_id}")
-       alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}_#{alignment.seq_id}")
+       alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}_#{alignment.seq_id}", longest_alignment_length)
      end
      thread_array=[]
      thread_num.times do |i|
@@ -158,17 +164,17 @@ class Alignment
   end
   
   #assumes that run_align_asses has already occured
-  def generate_pid_fasta_file(dir="temp_data")
+  def generate_pid_fasta_file(dir="temp_data", longest_alignment_length=0)
     fasta_string=""
     seq = Sequence.get(self.seq_id)
     pids = PercentIdentity.all(:seq1_id => self.seq_id, :percent_id.gte => 20, :order =>[:percent_id.desc],:unique=>true)
-    fasta_string= Alignment.first(:alignment_name => self.alignment_name, :seq_id=>self.seq_id).fasta_alignment_string
+    fasta_string= Alignment.first(:alignment_name => self.alignment_name, :seq_id=>self.seq_id).fasta_alignment_string("",longest_alignment_length)
     puts seq.abrev_name+":"+pids.count.to_s
     puts pids.map{|p| p.seq2_sequence.seq_name}.join(',')
     pids.each do |pid|
       if pid.seq2_id != seq.id
         print Sequence.get(pid.seq2_id).abrev_name + ":" + pid.percent_id.to_s + ","
-        fasta_string = fasta_string + Alignment.first(:alignment_name=>pid.alignment_name, :seq_id=>pid.seq2_id).fasta_alignment_string("pid:#{pid.percent_id}")
+        fasta_string = fasta_string + Alignment.first(:alignment_name=>pid.alignment_name, :seq_id=>pid.seq2_id).fasta_alignment_string("pid:#{pid.percent_id}",longest_alignment_length)
       end
     end
     puts ""
@@ -198,12 +204,19 @@ class Alignment
     self.save
   end
   
-  def fasta_alignment_string(extra_string="")
+  def fasta_alignment_string(extra_string="",longest_alignment_length=0)
     if self.alignment_sequence.empty?
       self.update_alignment_sequence
     end
+    extra_gaps = longest_alignment_length - self.alignment_sequence
+    extra_str=""
+    unless extra_gaps < 0
+      extra_gaps.times do |i|
+        extra_str = extra_str + "-"
+      end
+    end
     seq = Sequence.get(self.seq_id)
-    fasta_string = ">"+seq.abrev_name+" | "+seq.seq_name+"|"+seq.seq_type+"|"+seq.seq_accession+"|"+extra_string+"\n" + self.alignment_sequence+"\n"
+    fasta_string = ">"+seq.abrev_name+" | "+seq.seq_name+"|"+seq.seq_type+"|"+seq.seq_accession+"|"+extra_string+"\n" + self.alignment_sequence+ extra_str+"\n"
   end
   
   def generate_fasta_alignment_file_for_all(filename="")
