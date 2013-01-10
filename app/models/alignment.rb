@@ -27,7 +27,7 @@ class Alignment
   def sequences
     alignments = Alignment.all(:alignment_name => self.alignment_name, :order=>[:align_order])
     seq_ids = alignments.map{|a| a.seq_id}
-    Sequence.all(:seq_id=>seq_ids)
+    Sequence.all(:id=>seq_ids)
   end
   
   
