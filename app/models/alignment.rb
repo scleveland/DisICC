@@ -90,6 +90,29 @@ class Alignment
     system "./lib/comp_apps/caps/caps -F temp_data/#{self.alignment_name} --intra"
   end
   
+  def run_caps_threaded(thread_num = 6)
+     self.run_align_assess
+     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
+     alignments = Alignment.all(:alignment_name => self.alignment_name)
+     alignment_array = []
+     alignments.each do |alignment|
+       alignment_array << alignment.seq_id
+       Dir.mkdir("temp_data/#{self.alignment_name}_#{alignment.seq_id}") unless File.directory?("temp_data/#{self.alignment_name}_#{alignment.seq_id}")
+       alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}_#{alignment.seq_id}")
+     end
+     thread_array=[]
+     thread_num.times do |i|
+       thread_array = Thread.new{
+         while alignment_array.length > 0 do
+           this_seq_id = alignment_array.pop
+           puts "Starting Caps2 #{this_seq_id}"
+           system "./lib/comp_apps/caps2/caps -F temp_data/#{self.alignment_name}_#{this_seq_id} --intra"
+           puts "Finsihed Caps2 for #{this_seq_id}"
+         end
+      }
+      
+   end
+  
   def run_xdet
     self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
