@@ -110,7 +110,8 @@ class Alignment
            puts "Finsihed Caps2 for #{this_seq_id}"
          end
       }
-      
+    end
+    thread_array.map{|t| t.join}
    end
   
   def run_xdet
