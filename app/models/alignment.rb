@@ -208,7 +208,7 @@ class Alignment
     if self.alignment_sequence.empty?
       self.update_alignment_sequence
     end
-    extra_gaps = longest_alignment_length - self.alignment_sequence
+    extra_gaps = longest_alignment_length - self.alignment_sequence.length
     extra_str=""
     unless extra_gaps < 0
       extra_gaps.times do |i|
