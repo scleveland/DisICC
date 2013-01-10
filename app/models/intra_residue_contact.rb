@@ -1,7 +1,7 @@
 class IntraResidueContact
   include DataMapper::Resource
   
-  property :intra_residue_contact_id, Serial
+  property :id, Serial, :field=>'intra_residue_contact_id'
   property :seq_id, Integer, :required => true
   property :first_residue, Integer, :required => true
   property :second_residue, Integer, :required => true
@@ -9,5 +9,5 @@ class IntraResidueContact
   property :type, String, :required => true
 
   
-
+  belongs_to :sequence, 'Sequence', :child_key => :seq_id
 end

@@ -2,7 +2,7 @@ class ConseqsController < ApplicationController
   # GET /conseqs
   # GET /conseqs.xml
   def index
-    @conseqs = Conseq.all
+    @sequences = Conseq.all.aasequences.sequences#(:fields=>[:seq_id], :unique=>true, :order=>[:seq_id])
 
     respond_to do |format|
       format.html # index.html.erb
@@ -13,7 +13,7 @@ class ConseqsController < ApplicationController
   # GET /conseqs/1
   # GET /conseqs/1.xml
   def show
-    @conseq = Conseq.find(params[:id])
+    @conseqs = Sequence.get(params[:id]).conseqs.all(:order=>[:aasequence_id]) #Conseq.find(params[:id])
 
     respond_to do |format|
       format.html # show.html.erb

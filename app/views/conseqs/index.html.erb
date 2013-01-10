@@ -1,20 +1,30 @@
-<h1>Listing conseqs</h1>
+<h1>Listing Conseqs</h1>
 
-<table>
+<script>
+ $(document).ready(function() {
+     $('#conseqs').dataTable();
+ } );
+</script>
+<table id ='conseqs'>
+  <thead>
   <tr>
-    <th></th>
-    <th></th>
-    <th></th>
+    <th>ID</th>
+    <th>Name</th>
+    <th>Type</th>
   </tr>
-
-<% @conseqs.each do |conseq| %>
+  </thead>
+  <tbody>
+<% @sequences.each do |seq| %>
   <tr>
-    <td><%= link_to 'Show', conseq %></td>
-    <td><%= link_to 'Edit', edit_conseq_path(conseq) %></td>
-    <td><%= link_to 'Destroy', conseq, :confirm => 'Are you sure?', :method => :delete %></td>
+    <td><%= seq.id %></td>
+    <td><%= seq.seq_name %></td>
+    <td><%= seq.seq_type %></td>
   </tr>
 <% end %>
+</tbody>
 </table>
+
+<br />
 
 <br />
 

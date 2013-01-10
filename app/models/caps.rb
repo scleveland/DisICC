@@ -1,7 +1,7 @@
 class Caps
   include DataMapper::Resource
   
-  property :caps_id, Serial
+  property :id, Serial, :field=>'caps_id'
   property :aasequence_id, Integer, :required => true
   property :position_one, Integer, :required => true #this is the position of the aasequence
   property :position_two, Integer, :required => true # this is the position of the partner
@@ -11,6 +11,6 @@ class Caps
   property :seq_id, Integer, :required => true
   
   # has n, :disorder_values
-  # belongs_to :sequence
+  belongs_to :sequence, 'Sequence', :child_key =>[:seq_id]
   
 end

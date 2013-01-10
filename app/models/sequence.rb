@@ -3,7 +3,7 @@
 class Sequence 
   include DataMapper::Resource
   
-  property :seq_id, Serial
+  property :id, Serial, :field=>'seq_id'
   property :seq_name, String, :required => true, :length => 256
   property :sequence, Text, :required => true
   property :seq_type, String, :required => false
@@ -13,9 +13,13 @@ class Sequence
   property :alternate_name, String, :required => false
   property :owner, Integer, :required => true, :default => 1
   
-  #has n, :a_asequences
+  has n, :a_asequences, 'AAsequence', :child_key=>[:seq_id]
   has n, :users, :through =>Resource
-  has n, :disorders, 'Disorder'
+  has n, :disorders, 'Disorder', :child_key=>[:seq_id]
+  has n, :intra_residue_contacts, 'IntraResidueContact', :child_key=>[:seq_id]
+  has n, :caps, 'Caps', :child_key=>[:seq_id]
+  has n, :xdets, :through => :a_asequences
+  has n, :conseqs, :through => :a_asequences
   
   after :save do
     u = User.get(self.owner)

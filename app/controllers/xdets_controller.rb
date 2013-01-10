@@ -2,7 +2,7 @@ class XdetsController < ApplicationController
   # GET /xdets
   # GET /xdets.xml
   def index
-    @xdets = Xdet.all
+    @sequences = Xdet.all.aasequences.sequences#(:fields=>[:seq_id], :unique=>true, :order=>[:seq_id])
 
     respond_to do |format|
       format.html # index.html.erb
