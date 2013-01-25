@@ -116,9 +116,11 @@ class Alignment
      end
      alignment_array = []
      alignments.each do |alignment|
-       alignment_array << alignment.seq_id
-       Dir.mkdir("temp_data/#{self.alignment_name}_#{alignment.seq_id}") unless File.directory?("temp_data/#{self.alignment_name}_#{alignment.seq_id}")
-       alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}_#{alignment.seq_id}", longest_alignment_length)
+       if PercentIdentity.all(:seq1_id => alignment.sequence.id, :percent_id.gt => 25,:percent_id.lt => 90, :alignment_name => @align.alignment_name).count > 9
+         alignment_array << alignment.seq_id
+         Dir.mkdir("temp_data/#{Date.today.to_s}/#{self.alignment_name}_#{alignment.seq_id}") unless File.directory?("temp_data/#{self.alignment_name}_#{alignment.seq_id}")
+         alignment.generate_pid_fasta_file("temp_data/#{Date.today.to_s}/#{self.alignment_name}_#{alignment.seq_id}", longest_alignment_length)
+       end
      end
      thread_array=[]
      thread_num.times do |i|
@@ -126,7 +128,7 @@ class Alignment
          while alignment_array.length > 0 do
            this_seq_id = alignment_array.pop
            puts "Starting Caps2 #{this_seq_id}"
-           system "./lib/comp_apps/caps2/caps2 -F temp_data/#{self.alignment_name}_#{this_seq_id} --intra"
+           system "./lib/comp_apps/caps2/caps2 -F temp_data/#{Date.today.to_s}/#{self.alignment_name}_#{this_seq_id} --intra"
            puts "Finsihed Caps2 for #{this_seq_id}"
          end
       }
