@@ -205,9 +205,9 @@ class Alignment
            this_seq_id = alignment_array.pop
             filepath = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{Sequence.get(this_seq_id).abrev_name}_pid.ctl"
             f = File.new(filepath, "w+")
-            ctl_string = "Input file1: temp_data/#{self.alignment_name}/#{self.alignment_name}#{Sequence.get(this_seq_id).abrev_name}_pid.fasta	* File containing sequence alignment for the first protein
-            Input file2: temp_data/#{self.alignment_name}/#{self.alignment_name}#{Sequence.get(this_seq_id).abrev_name}_pid.fasta	* File containing sequence alignment for the second protein
-            Out file1: temp_data/#{self.alignment_name}/#{self.alignment_name}#{Sequence.get(this_seq_id).abrev_name}_pid.out	* File where the output information should be stored
+            ctl_string = "Input file1: temp_data/#{self.alignment_name}/#{self.alignment_name}_#{Sequence.get(this_seq_id).abrev_name}_pid.fasta	* File containing sequence alignment for the first protein
+            Input file2: temp_data/#{self.alignment_name}/#{self.alignment_name}_#{Sequence.get(this_seq_id).abrev_name}_pid.fasta	* File containing sequence alignment for the second protein
+            Out file1: temp_data/#{self.alignment_name}/#{self.alignment_name}_#{Sequence.get(this_seq_id).abrev_name}_pid.out	* File where the output information should be stored
             Co-evolution analysis: 0			* (0) Intra-molecular; (1) Inter-protein
             Type of data 1: 1				* (0) amino acid alignment; (1) codon-based alignment
             Type of data 2: 1				* (0) amino acid alignment; (1) codon-based alignment
