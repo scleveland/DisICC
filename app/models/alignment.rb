@@ -136,6 +136,30 @@ class Alignment
     thread_array.map{|t| t.join}
    end
   
+   def run_caps_without_fasta_threaded(thread_num = 6)
+      self.run_align_assess
+      Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
+      alignments = Alignment.all(:alignment_name => self.alignment_name)
+      alignment_array = []
+      alignments.each do |alignment|
+        if PercentIdentity.all(:seq1_id => alignment.sequence.id, :percent_id.gt => 25,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count > 9
+          alignment_array << alignment.seq_id
+        end
+      end
+      thread_array=[]
+      thread_num.times do |i|
+        thread_array[i] = Thread.new{
+          while alignment_array.length > 0 do
+            this_seq_id = alignment_array.pop
+            puts "Starting Caps2 #{this_seq_id}"
+            system "./lib/comp_apps/caps2/caps2 -F temp_data/#{self.alignment_name}_#{this_seq_id} --intra"
+            puts "Finsihed Caps2 for #{this_seq_id}"
+          end
+       }
+     end
+     thread_array.map{|t| t.join}
+    end
+  
   def run_xdet
     self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
