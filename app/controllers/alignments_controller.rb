@@ -365,9 +365,9 @@ class AlignmentsController < ApplicationController
             count +=1
           end
         end
-        if !NewCaps.first(:seq_id=> aaseq.seq_id, :position_one => aaseq.original_position).nil?
+        if !NewCap.first(:seq_id=> aaseq.seq_id, :position_one => aaseq.original_position).nil?
           count +=1
-        elsif !NewCaps.first(:seq_id=> aaseq.seq_id, :position_two => aaseq.original_position).nil?
+        elsif !NewCap.first(:seq_id=> aaseq.seq_id, :position_two => aaseq.original_position).nil?
           count +=1
         end
         aaseq.contact_positive_consensus = count /4
@@ -406,9 +406,9 @@ class AlignmentsController < ApplicationController
                   count +=1
                 end
               end
-              if !Caps.first(:seq_id=> aaseq.seq_id, :position_one => aaseq.original_position).nil?
+              if !NewCap.first(:seq_id=> aaseq.seq_id, :position_one => aaseq.original_position).nil?
                 count +=1
-              elsif !Caps.first(:seq_id=> aaseq.seq_id, :position_two => aaseq.original_position).nil?
+              elsif !NewCaps.first(:seq_id=> aaseq.seq_id, :position_two => aaseq.original_position).nil?
                 count +=1
               end
               aaseq.contact_consensus = count /4
