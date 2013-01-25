@@ -1,0 +1,6 @@
+
+<h3><%=@align.alignment_name%></h3>
+<% @alignments.each do |alignment|%>
+  <b><%=alignment.sequence.abrev_name+'('+@pids[alignment.sequence.id].count.to_s+')'%> :</b> <%=@pids[alignment.sequence.id].all(:order=>[:percent_id.desc]).map{|p| p.seq2_sequence.abrev_name + "("+p.percent_id.to_s+")"}.join(',')%>
+  <br/><br/>
+<%end%>
