@@ -12,5 +12,5 @@ class NewCap
   
   # has n, :disorder_values
   # belongs_to :sequence
-  
+    belongs_to :sequence, 'Sequence', :child_key =>[:seq_id]
 end
