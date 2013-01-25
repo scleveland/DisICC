@@ -11,6 +11,7 @@
     <th>Disorder Id</th>
     <th>Disorder Type</th>
     <th>Sequence ID</th>
+    <th>Sequence Type</th>
     <th>Sequence Name</th>
     <th></th>
     <th></th>
@@ -25,6 +26,7 @@
     <td><%= disorder.disorder_type%></td>
     <td><%= disorder.sequence.id%></td>
     <td><%= disorder.sequence.seq_name%></td>
+    <td><%= disorder.sequence.seq_type%></td>
     <td><%= link_to 'Show', disorder %></td>
     <td><%= link_to 'Edit', edit_disorder_path(disorder) %></td>
     <td><%= link_to 'Destroy', disorder, :confirm => 'Are you sure?', :method => :delete %></td>
