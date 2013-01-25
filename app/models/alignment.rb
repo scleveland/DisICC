@@ -224,7 +224,7 @@ class Alignment
             Random sampling: 10000			* Use in case significance test option is 1
             Gaps: 2						* Remove all columns with gaps (0); Remove columns with a specified number of gaps (1); Do not remove columns with gaps(2)
             Minimum R: 0.1					* Minimum value of correlation coeficient to be considered for filtering
-            GrSize: 3						* Maximum number of sites in the group permitted (given in percentage of protein length)""
+            GrSize: 3						* Maximum number of sites in the group permitted (given in percentage of protein length)"
             f.write(ctl_string)
             f.close
            puts "Starting Caps 1#{this_seq_id}"
