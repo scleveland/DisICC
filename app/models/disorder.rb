@@ -6,6 +6,7 @@ class Disorder
   property :disorder_type, String, :required => true
   property :version, Integer, :required => false
   property :seq_id, Integer
+  property :deleted_at, ParanoidDateTime
   
   alias :disorder_id :id
   belongs_to :sequence, 'Sequence', :child_key =>[:seq_id]#, :parent_key=>[:seq_id]

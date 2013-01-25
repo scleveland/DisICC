@@ -7,6 +7,8 @@ class Alignment
   property :align_order, Integer, :required => true
   property :alignment_sequence, Text, :required => true, :default => ""
   property :fasta_title, Text, :required => false, :default => ""
+  property :deleted_at, ParanoidDateTime
+  
   # has n, :disorder_values
   has 1, :sequence, 'Sequence', :child_key => [:seq_id]
   

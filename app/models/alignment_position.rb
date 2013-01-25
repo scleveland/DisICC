@@ -5,6 +5,7 @@ class AlignmentPosition
   property :alignment_id, Integer, :required => true
   property :position, Integer, :required => true
   property :aasequence_id, Integer, :required => true
+  property :deleted_at, ParanoidDateTime
   
   # has n, :disorder_values
   # belongs_to :sequence
