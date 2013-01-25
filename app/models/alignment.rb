@@ -253,11 +253,11 @@ class Alignment
 
   def import_caps
     #find correct directory
-    dir_name = "temp_data/#{self.alignment_name}"
+    #dir_name = "#{root_dir}/#{self.alignment_name}"
     #for each sequence in the alignment
     self.sequences.each do |seq|
       #open file that corresponds to this sequence
-      puts filename = "#{dir_name}/#{self.alignment_name}_#{seq.abrev_name}_pid.fasta.out"
+      puts filename = "#{self.alignment_name}_#{seq.abrev_name}_pid.fasta.out"
       if File.exists?(filename)
         puts "File exists"
         file = File.new(filename, "r")
