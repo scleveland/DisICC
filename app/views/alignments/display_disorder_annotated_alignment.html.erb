@@ -7,7 +7,7 @@
      $('#disorder').dataTable();
      <%count=0%>
      var plot1 = $.jqplot ('chart', [<%=@contact_consensus_array.map{|dv| count+=1;[count, dv.to_f/@seq_contact_count]}%>],{
-        title:'Alignment Consensus Disorder Prediction',
+        title:'<%=@alignment_name%> Alignment Consensus Disorder Prediction',
         axesDefaults: {
           labelRenderer: $.jqplot.CanvasAxisLabelRenderer
         },
