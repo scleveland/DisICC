@@ -118,7 +118,7 @@ class Alignment
      alignments.each do |alignment|
        if PercentIdentity.all(:seq1_id => alignment.sequence.id, :percent_id.gt => 25,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count > 9
          alignment_array << alignment.seq_id
-         Dir.mkdir("temp_data/#{Date.today.to_s}/#{self.alignment_name}_#{alignment.seq_id}") unless File.directory?("temp_data/#{self.alignment_name}_#{alignment.seq_id}")
+         Dir.mkdir("temp_data/#{Date.today.to_s}/#{self.alignment_name}_#{alignment.seq_id}") unless File.directory?("temp_data/#{Date.today.to_s}/#{self.alignment_name}_#{alignment.seq_id}")
          alignment.generate_pid_fasta_file("temp_data/#{Date.today.to_s}/#{self.alignment_name}_#{alignment.seq_id}", longest_alignment_length)
        end
      end
