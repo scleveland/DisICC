@@ -72,7 +72,8 @@ class DisordersController < ApplicationController
   # DELETE /disorders/1
   # DELETE /disorders/1.xml
   def destroy
-    @disorder = Disorder.find(params[:id])
+    @disorder = Disorder.get(params[:id])
+    @disorder.disorder_values.destroy
     @disorder.destroy
 
     respond_to do |format|
