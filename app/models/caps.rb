@@ -9,6 +9,7 @@ class Caps
   property :mean_two, Float, :required => true
   property :correlation, Float, :required => true
   property :seq_id, Integer, :required => true
+  property :deleted_at, ParanoidDateTime
   
   # has n, :disorder_values
   belongs_to :sequence, 'Sequence', :child_key =>[:seq_id]

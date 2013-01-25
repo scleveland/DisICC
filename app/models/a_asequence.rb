@@ -8,6 +8,7 @@ class AAsequence
   property :disorder_consensus, Float, :required => false, :default => 0.0
   property :contact_consensus, Float, :required => false, :default => 0.0
   property :contact_positive_consensus, Integer, :required => false, :default => 0.0
+  property :deleted_at, ParanoidDateTime
   
   alias :AAsequence_id :id
   belongs_to :sequence, 'Sequence', :child_key => [:seq_id]

@@ -12,6 +12,7 @@ class Sequence
   property :disorder_percent, Integer, :required => false
   property :alternate_name, String, :required => false
   property :owner, Integer, :required => true, :default => 1
+  property :deleted_at, ParanoidDateTime
   
   has n, :a_asequences, 'AAsequence', :child_key=>[:seq_id]
   has n, :users, :through =>Resource
@@ -20,6 +21,7 @@ class Sequence
   has n, :caps, 'Caps', :child_key=>[:seq_id]
   has n, :xdets, :through => :a_asequences
   has n, :conseqs, :through => :a_asequences
+  has n, :alignments, 'Alignment', :child_key=>[:seq_id]
   
   after :save do
     u = User.get(self.owner)
@@ -199,7 +201,7 @@ class Sequence
       dis_sum = 0
       #disorder_types.each do |dis_type|
           #dis_ids = Disorder.all(:disorder_type=>disorder_types, :seq_id=>self.seq_id).map{|k| k.disorder_id}
-          dvs = DisorderValue.all(:a_asequence_id => aa.AAsequence_id, :disorder_id=>dis_ids).map{|c| c.dvalue}
+          dvs = DisorderValue.all(:aasequence_id => aa.AAsequence_id, :disorder_id=>dis_ids).map{|c| c.dvalue}
           dis_sum = dvs.sum
         # if disorder_types.include?("DisEMBL Hotloops")
         #   dis_sum = dis_sum + 0.38 
@@ -240,7 +242,7 @@ class Sequence
 
    def store_ronn(filepath)
      #create a new disorder object
-     dis = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"RONN", :version=>1)
+     dis = Disorder.create(:seq_id => self.id, :disorder_type=>"RONN", :version=>1)
      self.disorders << dis
      self.save
      file = File.new(filepath, 'r')
@@ -251,10 +253,10 @@ class Sequence
        counter = counter + 1
        if counter > 2
          line_array = line.split
-         if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count)
+         if aa = AAsequence.first(:seq_id => self.id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
          #if aa.amino_acid == line_array[1]  
-           DisorderValue.create(:disorder_id => dis.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
+           DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
          end
          aa_count +=1
        end
@@ -265,12 +267,12 @@ class Sequence
      self.all(:seq_type => seq_type).each do |seq|
        begin
          if Disorder.first(:seq_id=>seq.seq_id, :disorder_type=>"RONN")
-           puts seq.abrev_name + " Already Exists: #{seq.seq_id}"
+           puts self.abrev_name + " Already Exists: #{seq.id}"
          else
            seq.generate_ronn
          end
        rescue
-         puts seq.abrev_name + " Didn't Store: #{seq.seq_id}"
+         puts seq.abrev_name + " Didn't Store: #{seq.id}"
        end
      end
    end
@@ -312,10 +314,10 @@ class Sequence
        #puts "#{counter}: #{line}"
        counter = counter + 1
          line_array = line.split
-         if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count)
+         if aa = AAsequence.first(:seq_id => self.id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
          #if aa.amino_acid == line_array[1]  
-           DisorderValue.create(:disorder_id => dis.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+           DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
          end
          aa_count +=1
      end
@@ -325,42 +327,46 @@ class Sequence
      self.all(:seq_type => seq_type).each do |seq|
        begin
          if Disorder.first(:seq_id=>seq.seq_id, :disorder_type=>"PONDR Fit")
-           puts seq.abrev_name + " Already Exists: #{seq.seq_id}"
+           puts seq.abrev_name + " Already Exists: #{seq.id}"
          else
            seq.generate_pondr_fit
          end
        rescue
-         puts seq.abrev_name + " Didn't Store: #{seq.seq_id}"
+         puts seq.abrev_name + " Didn't Store: #{seq.id}"
        end
      end
    end
 
    def generate_disembl
-     url = "http://dis.embl.de/cgiDict.py"
-     cur = Curl::Easy.new(url)
-     post_params= "key=process&SP_entry=&sequence_string=>#{self.sequence.gsub("\r",'').gsub("\n",'')}&smooth_frame=8&peak_frame=8&join_frame=4&fold_coils=1.20&fold_rem465=1.20&fold_hotloops=1.40&plot_title=&tango_PH=7.40&tango_T=298.15&tango_I=0.02&tango_TFE=0.00&fold_tango=1.00"
-     puts post_params
-     cur.http_post(post_params)
-     s = cur.body_str.to_s.split('<th>Download predictions</th>')
-     f = s[1].split(">smoothed scores</a>")
-     a = f[0].to_s.gsub("\n<td><a href=",'').gsub('"','')
-     file_url = "http://dis.embl.de/" + a
+     if Disorder.first(:seq_id=>self.id, :disorder_type=>["DisEMBL Hotloops","DisEMBL Coils"])
+        puts self.abrev_name + " DISEMBEL Already Exists: #{self.id}"
+    else
+       url = "http://dis.embl.de/cgiDict.py"
+       cur = Curl::Easy.new(url)
+       post_params= "key=process&SP_entry=&sequence_string=>#{self.sequence.gsub("\r",'').gsub("\n",'')}&smooth_frame=8&peak_frame=8&join_frame=4&fold_coils=1.20&fold_rem465=1.20&fold_hotloops=1.40&plot_title=&tango_PH=7.40&tango_T=298.15&tango_I=0.02&tango_TFE=0.00&fold_tango=1.00"
+       puts post_params
+       cur.http_post(post_params)
+       s = cur.body_str.to_s.split('<th>Download predictions</th>')
+       f = s[1].split(">smoothed scores</a>")
+       a = f[0].to_s.gsub("\n<td><a href=",'').gsub('"','')
+       file_url = "http://dis.embl.de/" + a
 
-     file_cur= Curl::Easy.new(file_url)
-     file_cur.http_post()
-     filepath= "temp_data/#{self.abrev_name}_Disembl"
-     f = File.new(filepath, "w+")
-     f.write(file_cur.body_str)
-     f.close #this will be the smoothed scores file
-     self.store_disembl(filepath)
+       file_cur= Curl::Easy.new(file_url)
+       file_cur.http_post()
+       filepath= "temp_data/#{self.abrev_name}_Disembl"
+       f = File.new(filepath, "w+")
+       f.write(file_cur.body_str)
+       f.close #this will be the smoothed scores file
+       self.store_disembl(filepath)
+     end
    end
 
    def store_disembl(filepath)
      #create a new disorder object
-     dis_hl = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"DisEMBL Hotloops", :version=>1)
+     dis_hl = Disorder.create(:seq_id => self.id, :disorder_type=>"DisEMBL Hotloops", :version=>1)
      self.disorders << dis_hl
      self.save
-     dis_coil = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"DisEMBL Coils", :version=>1)
+     dis_coil = Disorder.create(:seq_id => self.id, :disorder_type=>"DisEMBL Coils", :version=>1)
      self.disorders << dis_coil
      self.save
      file = File.new(filepath, 'r')
@@ -371,11 +377,11 @@ class Sequence
        counter = counter + 1
        if counter > 2
          line_array = line.split('      ')
-         if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count)
+         if aa = AAsequence.first(:seq_id => self.id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
          #if aa.amino_acid == line_array[1]  
-           DisorderValue.create(:disorder_id => dis_coil.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[0].to_f) 
-           DisorderValue.create(:disorder_id => dis_hl.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
+           DisorderValue.create(:disorder_id => dis_coil.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[0].to_f) 
+           DisorderValue.create(:disorder_id => dis_hl.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
          end
          aa_count +=1
        end
@@ -386,7 +392,7 @@ class Sequence
      self.all(:seq_type => seq_type).each do |seq|
        begin
          if Disorder.first(:seq_id=>seq.seq_id, :disorder_type=>["DisEMBL Hotloops","DisEMBL Coils"])
-           puts seq.abrev_name + " Already Exists: #{seq.seq_id}"
+           puts seq.abrev_name + " Already Exists: #{seq.id}"
          else
            seq.generate_disembl
          end
