@@ -176,7 +176,7 @@ class Alignment
            while alignment_array.length > 0 do
              this_seq_id = alignment_array.pop
              puts "Starting Caps2 #{this_seq_id}"
-             system "./lib/comp_apps/caps/caps -F temp_data/#{self.alignment_name}_#{this_seq_id} --intra"
+             system "./lib/comp_apps/caps2/caps2 -F temp_data/#{self.alignment_name}_#{this_seq_id} --intra"
              puts "Finsihed Caps2 for #{this_seq_id}"
            end
       #  }
