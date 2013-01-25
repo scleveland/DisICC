@@ -236,10 +236,9 @@ class Alignment
     thread_array.map{|t| t.join}
   end
   
-  def run_perl_caps_without_fasta
+  def run_perl_caps_without_fasta(thread_num=2)
     #self.run_align_assess
      #Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
-     thread_num = 2
      alignments = Alignment.all(:alignment_name => self.alignment_name)
      alignment_array = []
      alignments.each do |alignment|
