@@ -27,7 +27,8 @@ print $header;
 ###INFORMATION INPUT BY THE USER######
 srand(time|$$);
 my($control, @information, $infile, $out, $clase, $seq_ref, $test, $R_cutoff);#Input, output files, type of data (nt or aa) and reference seq for 3D
-$control = 'CAPS.ctl';
+#$control = 'CAPS.ctl';
+$control = "$ARGV[0]";
 File_reader::Control_reader($control, \@information);
 print "\nReading Control file options....\n";
 my($ctl) = 0;
