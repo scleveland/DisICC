@@ -17,6 +17,8 @@ Disicc::Application.routes.draw do
       get :display_compensatory_annotated_alignment
       get :display_disorder_annotated_alignment
       get :calculate_intraresidue_consensus
+      get :calculate_intraresidue_consensus_threaded
+      get :calculate_disorder_consensus_threaded
     end
     collection do
       get :upload
