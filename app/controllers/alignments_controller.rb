@@ -422,7 +422,14 @@ class AlignmentsController < ApplicationController
      redirect_to(alignments_path)   
   end
   
-  
+  def percent_identities 
+    @align = Alignment.get(params[:id])
+    @pids = {}
+    @alignments =  Alignment.all(:alignment_name => @align.alignment_name, :order=>[:align_order])
+    @alignments.each do |alignment|
+      @pids[alignment.sequence.id] =  PercentIdentity.all(:seq1_id => alignment.sequence.id, :percent_id.gt => 25,:percent_id.lt => 90, :alignment_name => @align.alignment_name)
+    end
+  end
   
   def calculate_disorder_consensus_threaded
     thread_num = 65
