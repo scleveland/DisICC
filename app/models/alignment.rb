@@ -8,7 +8,7 @@ class Alignment
   property :alignment_sequence, Text, :required => true, :default => ""
   property :fasta_title, Text, :required => false, :default => ""
   # has n, :disorder_values
-  # belongs_to :sequence
+  has 1, :sequence, 'Sequence', :child_key => [:seq_id]
   
   #validates_uniqueness_of :alignment_name
   
@@ -21,15 +21,27 @@ class Alignment
       
     end
   end
+  
   def sequence
     Sequence.get(self.seq_id)
   end
+  
   def sequences
     alignments = Alignment.all(:alignment_name => self.alignment_name, :order=>[:align_order])
     seq_ids = alignments.map{|a| a.seq_id}
     Sequence.all(:id=>seq_ids)
   end
   
+  
+  #runs the disorder apps for every sequence in the alignment
+  #then calculates the disorder consequence
+  # @params id
+  def run_consensus_disorder
+    self.sequences.each do |sequence|
+        sequence.run_and_store_disorder()
+        sequence.calculate_disorder_consensus()
+    end
+  end
   
   #runs the AlignAssess app to get percent identities for each sequence in the alignment
   def run_align_assess
