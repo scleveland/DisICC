@@ -19,6 +19,7 @@ class Sequence
   has n, :disorders, 'Disorder', :child_key=>[:seq_id]
   has n, :intra_residue_contacts, 'IntraResidueContact', :child_key=>[:seq_id]
   has n, :caps, 'Caps', :child_key=>[:seq_id]
+  has n, :caps, 'NewCap', :child_key=>[:seq_id]
   has n, :xdets, :through => :a_asequences
   has n, :conseqs, :through => :a_asequences
   has n, :alignments, 'Alignment', :child_key=>[:seq_id]
