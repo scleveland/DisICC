@@ -44,7 +44,7 @@ gem 'web-app-theme', '0.6.2'
 group(:development, :test) do
 
   # Uncomment this if you want to use rspec for testing your application
-gem 'ruby-debug19', :require => 'ruby-debug'
+#gem 'ruby-debug19', :require => 'ruby-debug'
   # gem 'rspec-rails', '~> 2.0.1'
 
   # To get a detailed overview about what queries get issued and how long they take
