@@ -17,7 +17,10 @@
     <%- end -%>
     <th></th>
     <th></th>
-
+    <th></th>
+    <th></th>
+    <th></th>
+    <th></th>
   </tr>
   </thead>
   <tbody>
@@ -31,7 +34,19 @@
     <%- end -%>
     <%- end -%>
     <td>
-      <%= link_to "Disorder", display_disorder_annotated_alignment_alignment_path(alignment.align_id) %>
+      <%= link_to "View Disorder", display_disorder_annotated_alignment_alignment_path(alignment.align_id) %>
+    </td>
+    <td>
+      <%= link_to "Run Disorder", display_disorder_annotated_alignment_alignment_path(alignment.align_id) %>
+    </td>
+    <td>
+      <%= link_to "Calculate Disorder Consensus", calculate_disorder_consensus_threaded_alignment_path(alignment.align_id) %>
+    </td>
+    <td>
+      <%= link_to "Calculate Contact Consensus", calculate_intraresidue_consensus_threaded_alignment_path(alignment.align_id) %>
+    </td>
+    <td>
+      <%= link_to "View Contact Consensus", display_compensatory_annotated_alignment_alignment_path(alignment.align_id) %>
     </td>
     <td><%= link_to 'Destroy', alignment, :confirm => 'Are you sure?', :method => :delete %></td>
   </tr>
