@@ -131,6 +131,36 @@ class AlignmentsController < ApplicationController
     @seq_types = {:N=>"N", :L=>"L", :P => "P"}
   end
   
+  def compensatory_brief_report
+    thread_num=70
+    @comp_array=[]
+    alignment_array=[]
+    Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, :order => [:align_order.asc]).each do |alignment|
+      alignment_array << alignment
+    end
+    thread_array=[]
+    thread_num.times do |i|
+        thread_array[i] = Thread.new{
+          while alignment_array.length > 0 do
+            alignment = alignment_array.pop  
+            temp_hash={}
+            seq = alignment.sequence
+            puts seq.abrev_name + ":intra"
+            temp_hash[:intra] = seq.intra_residue_contacts.count
+            puts seq.abrev_name + ":new_caps"
+            temp_hash[:new_caps] = seq.new_caps.count
+            puts seq.abrev_name + ":xdet"
+            temp_hash[:xdet] = seq.xdets.count
+            puts seq.abrev_name + ":conseq"
+            temp_hash[:conseq] = seq.conseqs.count
+            temp_hash[:name] = seq.abrev_name
+            @comp_array[alignment.align_order] = temp_hash
+         end
+        }
+    end
+    thread_array.map{|t| t.join}
+  end
+  
   def pre_process_fasta_file
     @name = Time.now.to_s + params[:datafile].original_filename
     directory = "temp_data"
