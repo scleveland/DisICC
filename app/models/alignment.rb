@@ -104,6 +104,54 @@ class Alignment
     system "./lib/comp_apps/caps/caps -F temp_data/#{self.alignment_name} --intra"
   end
   
+  def run_conseq
+    self.run_align_assess
+     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
+     alignments = Alignment.all(:alignment_name => self.alignment_name)
+     longest_alignment_length=0
+     alignments.each do |alignment|
+       if alignment.alignment_sequence.length > longest_alignment_length
+          longest_alignment_length = alignment.alignment_sequence.length
+       end
+     end
+     alignments.each do |alignment|
+       if PercentIdentity.all(:seq1_id => alignment.sequence.id, :percent_id.gt => 25,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count > 9
+         
+         Dir.mkdir("temp_data/#{self.alignment_name}_#{alignment.seq_id}") unless File.directory?("temp_data/#{self.alignment_name}_#{alignment.seq_id}")
+         alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}_#{alignment.seq_id}", longest_alignment_length)
+         #unless !self.conseq.first.nil?
+           puts "Submitting Conseq for: #{alignment.sequence.abrev_name}"
+           url ="http://conseq.tau.ac.il/cgi-bin/conseq_qsub.cgi"
+           cur = Curl::Easy.new(url)
+           cur.multipart_form_post = true
+           post_params= "ALGORITHM=Bayes&email_address=sean.b.cleveland@gmail.com&job_title=#{alignment.sequence.abrev_name}&send_user_mail=yes"
+           cur.http_post(Curl::PostField.file('msa_FILE','temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta'),post_params)
+           #cur.http_post(post_params)
+           puts post_params
+           puts cur.body_str.to_s
+         #end
+       end
+     end
+  end
+  
+  def run_svmcon_threaded(thread_num = 4)
+     alignment_array = []
+     alignments.each do |alignment|
+       alignment_array << alignment
+     end
+     thread_array=[]
+     thread_num.times do |i|
+       thread_array[i] = Thread.new{
+         while alignment_array.length > 0 do
+           alignment= alignment_array.pop
+           alignment.sequence.run_svmcon
+         end
+      }
+    end
+    thread_array.map{|t| t.join}
+   end
+  
+  
   def run_caps_threaded(thread_num = 6)
      self.run_align_assess
      Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")

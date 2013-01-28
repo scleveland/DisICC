@@ -19,7 +19,7 @@ class Sequence
   has n, :disorders, 'Disorder', :child_key=>[:seq_id]
   has n, :intra_residue_contacts, 'IntraResidueContact', :child_key=>[:seq_id]
   has n, :caps, 'Caps', :child_key=>[:seq_id]
-  has n, :caps, 'NewCap', :child_key=>[:seq_id]
+  has n, :new_caps, 'NewCap', :child_key=>[:seq_id]
   has n, :xdets, :through => :a_asequences
   has n, :conseqs, :through => :a_asequences
   has n, :alignments, 'Alignment', :child_key=>[:seq_id]
@@ -117,6 +117,13 @@ class Sequence
     return filepath
   end
   
+  def run_svmcon
+    path = self.generate_fasta_file
+    puts "Starting SVMCon #{self.abrev_name}"
+    system "~/svmcon1.0/bin/predict_map.sh #{path} #{path}.map"
+    puts "Finsihed SVMCon for #{self.abrev_name}"
+  end
+  
   def generate_fasta_string
     fasta_string = ">"+self.abrev_name+"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n"
     fasta_string = fasta_string + self.sequence + "\n"
@@ -200,16 +207,22 @@ class Sequence
     dis_ids = self.disorders.map{|k| k.disorder_id}
     AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
       dis_sum = 0
-      #disorder_types.each do |dis_type|
-          #dis_ids = Disorder.all(:disorder_type=>disorder_types, :seq_id=>self.seq_id).map{|k| k.disorder_id}
-          dvs = DisorderValue.all(:aasequence_id => aa.AAsequence_id, :disorder_id=>dis_ids).map{|c| c.dvalue}
-          dis_sum = dvs.sum
+      dvals = DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
+      dvs = dvals.map{|c| c.dvalue}
+      puts "DVals: " + dvs.join(',').to_s
+      dis_sum = dvs.inject{|sum,x| sum + x }
+      puts "Sum: " + dis_sum.to_s
         # if disorder_types.include?("DisEMBL Hotloops")
         #   dis_sum = dis_sum + 0.38 
         #   dis_num = dis_ids.length
         # end
       #end
-      aa.disorder_consensus = dis_sum/dis_ids.length
+      if dvals.count > 0
+        aa.disorder_consensus = dis_sum/dvals.count
+      else
+        aa.disorder_consensus = 0
+      end
+      puts "Consensus: "+aa.disorder_consensus.to_s
       aa.save
     end
   end
@@ -277,6 +290,47 @@ class Sequence
        end
      end
    end
+
+   def run_cornet
+     unless !self.intra_residue_contacts.first.nil?
+        puts "Submitting Cornet for: #{self.abrev_name}"
+        url ="http://gpcr.biocomp.unibo.it/cgi/predictors/cornet/pred_cmapcgi.cgi"
+        cur = Curl::Easy.new(url)
+        post_params= "address=sean.b.cleveland@gmail.com&seqname=#{self.abrev_name}&db=SwissProt&text=#{self.sequence}&filter=No"
+        cur.http_post(post_params)
+        puts post_params
+         puts cur.body_str.to_s
+     end
+   end
+
+   def run_svmseq
+     unless !self.intra_residue_contacts.first.nil?
+         puts "Submitting SVMSEQ for: #{self.abrev_name}"
+         url ="http://zhanglab.ccmb.med.umich.edu/cgi-bin/SVMSEQ.pl"
+         cur = Curl::Easy.new(url)
+         #cur.multipart_form_post = true
+         post_params= "REPLY-E-MAIL=sean.b.cleveland@gmail.com&TARGET-NAME=#{self.abrev_name}&SEQUENCE=#{self.sequence}"
+         cur.http_post(post_params)
+         puts post_params
+         puts cur.body_str.to_s
+     end
+   end
+   
+   def run_dncon
+     unless !self.intra_residue_contacts.first.nil?
+          puts "Submitting DNCon for: #{self.abrev_name}"
+          url ="http://iris.rnet.missouri.edu/cgi-bin/dncon/submit_job.cgi"
+          cur = Curl::Easy.new(url)
+          #cur.multipart_form_post = true
+          post_params= "email_address=sean.b.cleveland@gmail.com&job_title=#{self.abrev_name}&protein_sequence=#{self.sequence}&to_take=l"
+          cur.http_post(post_params)
+          puts post_params
+          puts cur.body_str.to_s
+      end
+   end
+
+
+    
 
    def generate_pondr_fit
      unless self.disorders.first(:disorder_type=>"PONDR Fit")
