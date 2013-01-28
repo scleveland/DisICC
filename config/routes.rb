@@ -20,6 +20,7 @@ Disicc::Application.routes.draw do
       get :calculate_intraresidue_consensus_threaded
       get :calculate_disorder_consensus_threaded
       get :percent_identities
+      get :compensatory_brief_report
     end
     collection do
       get :upload

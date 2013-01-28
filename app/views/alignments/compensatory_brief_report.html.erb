@@ -1,0 +1,46 @@
+<script>
+ $(document).ready(function() {
+     $('#alignments').dataTable();
+ } );
+</script>
+<h1>Listing alignment CICPs</h1>
+
+<table border=1 id="alignments" style="width: 400px; height: 300px;">
+  <thead>
+  <tr>
+    <th>Sequence</th>
+    <th>intra-res contact</th>
+    <th>conseq</th>
+    <th>xdet</th>
+    <th>caps</th>
+  </tr>
+  </thead>
+  <tbody>
+<% @comp_array.each do |v| %>
+  <tr>
+    
+    <td>
+      <%= v[:name] %>
+    </td>
+    <td>
+      <%= v[:intra]%>
+    </td>
+    <td>
+      <%= v[:conseq] %>
+    </td>
+    <td>
+      <%= v[:xdet] %>
+    </td>
+    <td>
+      <%= v[:new_caps] %>
+    </td>
+  </tr>
+  
+<% end %>
+ </tbody>
+</table>
+
+<br />
+<br />
+<%= link_to 'Back', root_path %>
+<br /><br />
