@@ -135,6 +135,7 @@ class Alignment
   end
   
   def run_svmcon_threaded(thread_num = 4)
+    alignments = Alignment.all(:alignment_name => self.alignment_name)
      alignment_array = []
      alignments.each do |alignment|
        alignment_array << alignment
