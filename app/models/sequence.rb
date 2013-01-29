@@ -118,7 +118,7 @@ class Sequence
   end
   
   def run_svmcon
-    path = self.generate_fasta_file
+    path = self.generate_fasta_file_one_line
     puts "Starting SVMCon #{self.abrev_name}"
     system "~/svmcon1.0/bin/predict_map.sh #{path} #{path}.map"
     puts "Finsihed SVMCon for #{self.abrev_name}"
@@ -127,6 +127,11 @@ class Sequence
   def generate_fasta_string
     fasta_string = ">"+self.abrev_name+"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n"
     fasta_string = fasta_string + self.sequence + "\n"
+  end
+  
+  def generate_fasta_string_one_line
+    fasta_string = ">"+self.abrev_name+"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n"
+    fasta_string = fasta_string + self.a_asequences(:order=>[:seq_id], :fields=>[:amino_acid]).map{|aa| aa.amino_acid}.join('') + "\n"
   end
   #### DISORDER ####
   
