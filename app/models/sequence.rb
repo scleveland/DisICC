@@ -118,7 +118,7 @@ class Sequence
   end
   
   def run_svmcon
-    path = self.generate_fasta_file_one_line
+    path = self.generate_fasta_string_one_line
     puts "Starting SVMCon #{self.abrev_name}"
     system "~/svmcon1.0/bin/predict_map.sh #{path} #{path}.map"
     puts "Finsihed SVMCon for #{self.abrev_name}"
