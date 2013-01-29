@@ -117,8 +117,17 @@ class Sequence
     return filepath
   end
   
+  def generate_fasta_file_one_line
+    filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+".fasta"
+    f = File.new(filepath, "w+")
+    f.write(">"+self.abrev_name+"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n")
+    f.write(self.a_asequences(:order=>[:seq_id], :fields=>[:amino_acid]).map{|aa| aa.amino_acid}.join(''))
+    f.close
+    return filepath
+  end
+  
   def run_svmcon
-    path = self.generate_fasta_string_one_line
+    path = self.generate_fasta_file_one_line
     puts "Starting SVMCon #{self.abrev_name}"
     system "~/svmcon1.0/bin/predict_map.sh #{path} #{path}.map"
     puts "Finsihed SVMCon for #{self.abrev_name}"
