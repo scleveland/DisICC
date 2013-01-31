@@ -2,7 +2,7 @@
 <script>
  $(document).ready(function() {
      $('#disorder').dataTable();
-     var plot1 = $.jqplot ('chart', [<%=@disorder.disorder_values(:order=>[:id]).map{|dv| [dv.a_asequence.original_position,dv.dvalue]}%>],{
+     var plot1 = $.jqplot ('chart', [<%=@disorder.disorder_values(:order=>[:disorder_value_id]).map{|dv| [dv.a_asequence.original_position,dv.dvalue]}%>],{
        title:'<%=@disorder.disorder_type%> Disorder Prediction',
        axesDefaults: {
          labelRenderer: $.jqplot.CanvasAxisLabelRenderer

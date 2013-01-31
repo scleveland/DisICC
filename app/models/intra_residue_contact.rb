@@ -8,6 +8,9 @@ class IntraResidueContact
   property :confidence, Float, :required => true
   property :type, String, :required => true
   property :deleted_at, ParanoidDateTime
+  property :d1, Integer, :required => false
+  property :d2, Integer, :required => false
+  property :type, String, :required => false
   
   belongs_to :sequence, 'Sequence', :child_key => :seq_id
 end

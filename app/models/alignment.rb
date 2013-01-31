@@ -344,6 +344,27 @@ class Alignment
     end
   end
   
+  def run_xdet_threaded
+    self.run_align_assess
+    Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
+    alignments = Alignment.all(:alignment_name => self.alignment_name)
+    alignment_array = []
+    alignments.each do |a|
+      alignment_array << a
+    end
+    thread_array=[]
+     thread_num.times do |i|
+       thread_array[i] = Thread.new{
+         while alignment_array.length > 0 do
+          alignment = alignment_array.pop
+          filename= alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}")
+          system "./lib/comp_apps/XDet/xdet_linux32 #{filename} ~/Rails/DisICC/lib/comp_apps/XDet/Maxhom_McLachlan.metric >> #{filename}_xdet"
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
+  
   def run_rate4site
     self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
@@ -448,6 +469,12 @@ class Alignment
     filepath
   end
   
+  def import_svmcon
+
+    self.sequences.each do |seq|
+      seq.import_svmcon
+    end #end sequences.each
+  end
 
   def import_caps
     #find correct directory
