@@ -186,7 +186,7 @@ class Sequence
         if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count, :amino_acid=>line_array[1])
         #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
         #if aa.amino_acid == line_array[1]  
-          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
         end
         aa_count +=1
       end
@@ -202,15 +202,18 @@ class Sequence
     counter = 1
     aa_count = 0
     while (line = file.gets)
-      #puts "#{counter}: #{line}"
+      puts "#{counter}: #{line}"
       counter = counter + 1
       puts counter
       if counter > 10
         line_array = line.split(' ')
         if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count, :amino_acid=>line_array[1])
-        #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
+        puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s + "|" + line_array[2].to_f.to_s
         #if aa.amino_acid == line_array[1]  
-          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+          dv = DisorderValue.new(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+          dv.valid?
+          puts dv.errors.inspect()
+          dv.save
         end
         aa_count +=1
       end
@@ -219,9 +222,10 @@ class Sequence
   
   def calculate_disorder_consensus()#disorder_types)
     dis_ids = self.disorders.map{|k| k.disorder_id}
+    puts dis_ids.join(',')
     AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
       dis_sum = 0
-      dvals = DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
+      dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
       dvs = dvals.map{|c| c.dvalue}
       puts "DVals: " + dvs.join(',').to_s
       dis_sum = dvs.inject{|sum,x| sum + x }
@@ -239,6 +243,41 @@ class Sequence
       puts "Consensus: "+aa.disorder_consensus.to_s
       aa.save
     end
+  end
+  
+  def calculate_disorder_consensus_threaded(thread_num = 100)#disorder_types)
+    aa_array =[]
+    AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
+      aa_array << aa
+    end
+    @dis_ids = self.disorders.map{|k| k.disorder_id}
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+        while aa_array.length > 0 do
+          aa = aa_array.pop
+          dis_sum = 0
+          dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
+          dvs = dvals.map{|c| c.dvalue}
+          puts "DVals: " + dvs.join(',').to_s
+          dis_sum = dvs.inject{|sum,x| sum + x }
+          puts "Sum: " + dis_sum.to_s
+          # if disorder_types.include?("DisEMBL Hotloops")
+          #   dis_sum = dis_sum + 0.38 
+          #   dis_num = dis_ids.length
+          # end
+          #end
+          if dvals.count > 0
+            aa.disorder_consensus = dis_sum/dvals.count
+          else
+            aa.disorder_consensus = 0
+          end
+          puts "Consensus: "+aa.disorder_consensus.to_s
+          aa.save
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
   end
   
   def self.calculate_disorder_consensus_for_types(ptype, disorder_types)
@@ -656,5 +695,50 @@ class Sequence
       sql="UPDATE a_asequences SET contact_positive_consensus =0.0 WHERE seq_id=#{self.seq_id}"
       repository.adapter.execute(sql)
   end
+  
+  def import_svmcon
+
+      seq = self
+      #open file that corresponds to this sequence
+      puts filename = "#{self.abrev_name}_#{self.seq_type}.fasta.map"
+      if File.exists?(filename)
+        puts "File exists"
+        file = File.new(filename, "r")
+        start_line = 99999999999
+        line_num = 1
+        temp_lines = (self.a_asequences.count/50.0)
+        lines = temp_lines.to_i + ( (temp_lines - temp_lines.to_i) > 0 ? 1 : 0)
+        while (line = file.gets)
+          if line.include?('Model')
+            start_line = line_num + lines + 1
+          end
+          if line_num > start_line
+            break if line == "\n"
+            results = line.split
+            puts "Result0:"+results[0]
+            puts "Result1:"+results[1]
+            puts results[0]
+            position_one= results[0].to_i - 1
+            puts results[1]
+            position_two = results[1].to_i - 1
+            d1 = results[2].to_i
+            d2 = results[3].to_i
+            confidence = results[4].to_f
+
+            
+            IntraResidueContact.create(:seq_id => self.id,
+                        :first_residue => position_one,
+                        :second_residue => position_two,
+                        :d1 => mean_one,
+                        :d2 => mean_two,
+                        :confidence => correlation,
+                        :seq_id => seq.seq_id,
+                        :type => "SVMCon")
+          end
+          line_num +=1
+        end #end while
+      end #end if
+  end
+  
 end
 
