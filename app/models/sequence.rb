@@ -186,7 +186,7 @@ class Sequence
         if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count, :amino_acid=>line_array[1])
         #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
         #if aa.amino_acid == line_array[1]  
-          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
         end
         aa_count +=1
       end
@@ -202,15 +202,18 @@ class Sequence
     counter = 1
     aa_count = 0
     while (line = file.gets)
-      #puts "#{counter}: #{line}"
+      puts "#{counter}: #{line}"
       counter = counter + 1
       puts counter
       if counter > 10
         line_array = line.split(' ')
         if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count, :amino_acid=>line_array[1])
-        #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
+        puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s + "|" + line_array[2].to_f.to_s
         #if aa.amino_acid == line_array[1]  
-          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :a_asequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+          dv = DisorderValue.new(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+          dv.valid?
+          puts dv.errors.inspect()
+          dv.save
         end
         aa_count +=1
       end
@@ -219,9 +222,10 @@ class Sequence
   
   def calculate_disorder_consensus()#disorder_types)
     dis_ids = self.disorders.map{|k| k.disorder_id}
+    puts dis_ids.join(',')
     AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
       dis_sum = 0
-      dvals = DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
+      dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
       dvs = dvals.map{|c| c.dvalue}
       puts "DVals: " + dvs.join(',').to_s
       dis_sum = dvs.inject{|sum,x| sum + x }
@@ -239,6 +243,41 @@ class Sequence
       puts "Consensus: "+aa.disorder_consensus.to_s
       aa.save
     end
+  end
+  
+  def calculate_disorder_consensus_threaded(thread_num = 100)#disorder_types)
+    aa_array =[]
+    AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
+      aa_array << aa
+    end
+    @dis_ids = self.disorders.map{|k| k.disorder_id}
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+        while aa_array.length > 0 do
+          aa = aa_array.pop
+          dis_sum = 0
+          dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
+          dvs = dvals.map{|c| c.dvalue}
+          puts "DVals: " + dvs.join(',').to_s
+          dis_sum = dvs.inject{|sum,x| sum + x }
+          puts "Sum: " + dis_sum.to_s
+          # if disorder_types.include?("DisEMBL Hotloops")
+          #   dis_sum = dis_sum + 0.38 
+          #   dis_num = dis_ids.length
+          # end
+          #end
+          if dvals.count > 0
+            aa.disorder_consensus = dis_sum/dvals.count
+          else
+            aa.disorder_consensus = 0
+          end
+          puts "Consensus: "+aa.disorder_consensus.to_s
+          aa.save
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
   end
   
   def self.calculate_disorder_consensus_for_types(ptype, disorder_types)
@@ -702,6 +741,5 @@ class Sequence
   end
   
 
-  
 end
 
