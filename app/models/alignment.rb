@@ -400,6 +400,8 @@ class Alignment
     thread_array.map{|t| t.join}
   end
   
+ 
+  
   def run_rate4site
     #self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
