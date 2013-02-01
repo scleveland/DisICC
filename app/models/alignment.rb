@@ -334,6 +334,41 @@ class Alignment
     thread_array.map{|t| t.join}
   end
   
+  def import_xdet(thread_num=4)
+    seq_array = []
+    self.sequences.each do |seq|
+      seq_array << seq
+    end
+    thread_array=[]
+    thread_num.times do |i|
+    thread_array[i] = Thread.new{
+       while seq_array.length > 0 do
+          seq = seq_array.pop
+          puts filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{seq.abrev_name}_pid.fasta_xdet"#fasta.out"
+          if File.exists?(filename)
+            puts "File exists"
+            file = File.new(filename, "r")
+            while (line = file.gets)
+                break if line == "\n"
+                results = line.split
+                puts "Postion:"+results[0]+ "| Conservation:" + results[4] + "| Correlation:" + results[8]
+                xd = Xdet.new(
+                  :aasequence_id =>AlignmentPosition.first(:position=> results[0].to_i-1,:alignment_id=>self.align_id).aasequence_id,
+                  :conservation => results[8].to_f, 
+                  :correlation => results[4].to_f, 
+                  :seq_id => seq.seq_id
+                )  
+                xd.valid?
+                puts xd.errors.inspect()
+                xd.save
+            end #end while
+          end #end if
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
+
   def run_xdet
     self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
@@ -344,12 +379,34 @@ class Alignment
     end
   end
   
-  def run_rate4site
+  def run_xdet_threaded
     self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
     alignments = Alignment.all(:alignment_name => self.alignment_name)
+    alignment_array = []
+    alignments.each do |a|
+      alignment_array << a
+    end
+    thread_array=[]
+     thread_num.times do |i|
+       thread_array[i] = Thread.new{
+         while alignment_array.length > 0 do
+          alignment = alignment_array.pop
+          filename= alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}")
+          system "./lib/comp_apps/XDet/xdet_linux32 #{filename} ~/Rails/DisICC/lib/comp_apps/XDet/Maxhom_McLachlan.metric >> #{filename}_xdet"
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
+  
+  def run_rate4site
+    #self.run_align_assess
+    Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
+    alignments = Alignment.all(:alignment_name => self.alignment_name)
     alignments.each do |alignment|
-      filename= alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}")
+      #filename= alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}")
+      filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta"
       system "./lib/comp_apps/conseq/rate4site_fast -s #{filename} -o #{filename}_conseq"
     end
   end
@@ -448,6 +505,12 @@ class Alignment
     filepath
   end
   
+  def import_svmcon
+
+    self.sequences.each do |seq|
+      seq.import_svmcon
+    end #end sequences.each
+  end
 
   def import_caps
     #find correct directory
@@ -455,14 +518,14 @@ class Alignment
     #for each sequence in the alignment
     self.sequences.each do |seq|
       #open file that corresponds to this sequence
-      puts filename = "#{self.alignment_name}_#{seq.abrev_name}_pid.fasta.out"
+      puts filename = "temp_data/#{self.alignment_name}_#{seq.abrev_name}_pid.out"#fasta.out"
       if File.exists?(filename)
         puts "File exists"
         file = File.new(filename, "r")
         start_line = 99999999999
         line_num = 1
         while (line = file.gets)
-          if line.include?('Position')
+          if line.include?('Posicion')
             start_line = line_num + 1
           end
           if line_num > start_line
@@ -486,13 +549,13 @@ class Alignment
                         :mean_two => mean_two,
                         :correlation => correlation,
                         :seq_id => seq.seq_id )
-            NewCap.create(:aasequence_id => aasequence_one.AAsequence_id,
-                        :position_one => position_two,
-                        :position_two => position_one,
-                        :mean_one => mean_one,
-                        :mean_two => mean_two,
-                        :correlation => correlation,
-                        :seq_id => seq.seq_id )
+            # NewCap.create(:aasequence_id => aasequence_one.AAsequence_id,
+            #             :position_one => position_two,
+            #             :position_two => position_one,
+            #             :mean_one => mean_one,
+            #             :mean_two => mean_two,
+            #             :correlation => correlation,
+            #             :seq_id => seq.seq_id )
           end
           line_num +=1
         end #end while
@@ -500,5 +563,56 @@ class Alignment
     end #end sequences.each
   end
 
+  def import_caps_threaded(thread_num=4)
+    seq_array = []
+    self.sequences.each do |seq|
+      seq_array << seq
+    end
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+         while seq_array.length > 0 do
+            seq = seq_array.pop
+            puts filename = "temp_data/#{self.alignment_name}_#{seq.abrev_name}_pid.out"#fasta.out"
+            if File.exists?(filename)
+              puts "File exists"
+              file = File.new(filename, "r")
+              start_line = 99999999999
+              line_num = 1
+              while (line = file.gets)
+                if line.include?('Posicion')
+                  start_line = line_num + 1
+                end
+                if line_num > start_line
+                  break if line == "\n"
+                  results = line.split
+                  puts "Result0:"+results[0]
+                  puts "Result1:"+results[1]
+                  puts results[0].split('(')[1]
+                  position_one= results[0].split('(')[1].gsub(')','').to_i - 1
+                  aasequence_one = AAsequence.first(:seq_id=> seq.seq_id, :original_position=>position_one)
+                  puts results[1].split('(')[1]
+                  position_two = results[1].split('(')[1].gsub(')','').to_i - 1
+                  aasequence_two = AAsequence.first(:seq_id=> seq.seq_id, :original_position=>position_two)
+                  mean_one = results[2].to_f
+                  mean_two = results[3].to_f
+                  correlation = results[4].to_f
+                  NewCap.create(:aasequence_id => aasequence_one.AAsequence_id,
+                              :position_one => position_one,
+                              :position_two => position_two,
+                              :mean_one => mean_one,
+                              :mean_two => mean_two,
+                              :correlation => correlation,
+                              :seq_id => seq.seq_id )
+
+                end
+                line_num +=1
+              end #end while
+            end #end if
+        end
+       }
+    end
+    thread_array.map{|t| t.join}
+  end
 
 end

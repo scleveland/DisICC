@@ -656,5 +656,52 @@ class Sequence
       sql="UPDATE a_asequences SET contact_positive_consensus =0.0 WHERE seq_id=#{self.seq_id}"
       repository.adapter.execute(sql)
   end
+  
+  def import_svmcon
+
+      seq = self
+      #open file that corresponds to this sequence
+      puts filename = "#{self.abrev_name}_#{self.seq_type}.fasta.map"
+      if File.exists?(filename)
+        puts "File exists"
+        file = File.new(filename, "r")
+        start_line = 99999999999
+        line_num = 1
+        temp_lines = (self.a_asequences.count/50.0)
+        lines = temp_lines.to_i + ( (temp_lines - temp_lines.to_i) > 0 ? 1 : 0)
+        while (line = file.gets)
+          if line.include?('Model')
+            start_line = line_num + lines + 1
+          end
+          if line_num > start_line
+            break if line == "\n"
+            results = line.split
+            puts "Result0:"+results[0]
+            puts "Result1:"+results[1]
+            puts results[0]
+            position_one= results[0].to_i - 1
+            puts results[1]
+            position_two = results[1].to_i - 1
+            d1 = results[2].to_i
+            d2 = results[3].to_i
+            confidence = results[4].to_f
+
+            
+            IntraResidueContact.create(:seq_id => self.id,
+                        :first_residue => position_one,
+                        :second_residue => position_two,
+                        :d1 => mean_one,
+                        :d2 => mean_two,
+                        :confidence => correlation,
+                        :seq_id => seq.seq_id,
+                        :type => "SVMCon")
+          end
+          line_num +=1
+        end #end while
+      end #end if
+  end
+  
+
+  
 end
 

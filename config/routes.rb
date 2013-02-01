@@ -21,6 +21,7 @@ Disicc::Application.routes.draw do
       get :calculate_disorder_consensus_threaded
       get :percent_identities
       get :compensatory_brief_report
+      get :disorder_brief_report
     end
     collection do
       get :upload
