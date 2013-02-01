@@ -23,6 +23,7 @@
     <th></th>
     <th></th>
     <th></th>
+    <th></th>
   </tr>
   </thead>
   <tbody>
@@ -43,6 +44,9 @@
     </td>
     <td>
       <%= link_to "Calculate Disorder Consensus", calculate_disorder_consensus_threaded_alignment_path(alignment.align_id) %>
+    </td>
+    <td>
+      <%= link_to "View Disorder Report", disorder_brief_report_alignment_path(alignment.align_id) %>
     </td>
     <td>
       <%= link_to "Calculate Contact Consensus", calculate_intraresidue_consensus_threaded_alignment_path(alignment.align_id) %>

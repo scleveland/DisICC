@@ -131,6 +131,33 @@ class AlignmentsController < ApplicationController
     @seq_types = {:N=>"N", :L=>"L", :P => "P"}
   end
   
+  def disorder_brief_report
+    thread_num=70
+    @dis_array=[]
+    alignment_array=[]
+    Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, :order => [:align_order.asc]).each do |alignment|
+      alignment_array << alignment
+    end
+    thread_array=[]
+    thread_num.times do |i|
+        thread_array[i] = Thread.new{
+          while alignment_array.length > 0 do
+            alignment = alignment_array.pop  
+            temp_hash={}
+            seq = alignment.sequence
+            seq.disorders.each do |disorder|
+              temp_hash[disorder.disorder_type] = repository(:default).adapter.select("SELECT COUNT (*) FROM disorder_values where disorder_id =#{disorder.id}")#disorder.disorder_values.count
+            end
+            temp_hash[:name] =seq.abrev_name
+            @dis_array[alignment.align_order] = temp_hash
+         end
+        }
+    end
+    thread_array.map{|t| t.join}
+    @disorder_types = repository(:default).adapter.select('SELECT DISTINCT disorder_type FROM Disorders')
+    #Disorder.all(:fields=>[:disorder_type, :id], :unique=>true).map{|d| d.disorder_type}
+  end
+  
   def compensatory_brief_report
     thread_num=70
     @comp_array=[]
@@ -146,13 +173,13 @@ class AlignmentsController < ApplicationController
             temp_hash={}
             seq = alignment.sequence
             puts seq.abrev_name + ":intra"
-            temp_hash[:intra] = seq.intra_residue_contacts.count
+            temp_hash[:intra] = repository(:default).adapter.select("SELECT COUNT (*) FROM intra_residue_contacts where seq_id =#{seq.id}")#seq.intra_residue_contacts.count
             puts seq.abrev_name + ":new_caps"
-            temp_hash[:new_caps] = seq.new_caps.count
+            temp_hash[:new_caps] = repository(:default).adapter.select("SELECT COUNT (*) FROM new_caps where seq_id =#{seq.id}")#seq.new_caps.count
             puts seq.abrev_name + ":xdet"
-            temp_hash[:xdet] = seq.xdets.count
+            temp_hash[:xdet] = repository(:default).adapter.select("SELECT COUNT (*) FROM xdets where seq_id =#{seq.id}")#seq.xdets.count
             puts seq.abrev_name + ":conseq"
-            temp_hash[:conseq] = seq.conseqs.count
+            temp_hash[:conseq] = repository(:default).adapter.select("SELECT COUNT (*) FROM conseqs where seq_id =#{seq.id}")#seq.conseqs.count
             temp_hash[:name] = seq.abrev_name
             @comp_array[alignment.align_order] = temp_hash
          end
@@ -425,6 +452,7 @@ class AlignmentsController < ApplicationController
               if !IntraResidueContact.first(:seq_id => aaseq.seq_id, :first_residue=> aaseq.original_position).nil?
                 count +=1
               elsif !IntraResidueContact.first(:seq_id => aaseq.seq_id, :second_residue=> aaseq.original_position).nil?
+                count +=1
               end
               if !Conseq.first(:aasequence_id => aaseq.AAsequence_id).nil?
                 if Conseq.first(:aasequence_id => aaseq.AAsequence_id).color < 4
