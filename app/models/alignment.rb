@@ -164,7 +164,7 @@ class Alignment
         thread_array[i] = Thread.new{
           while alignment_array.length > 0 do
             alignment= alignment_array.pop
-            alignment.sequence.run_nncon("#{self.alignment_name}/nncon")
+            alignment.sequence.run_nncon("temp_data/#{self.alignment_name}/nncon")
           end
        }
      end
