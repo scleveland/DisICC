@@ -136,8 +136,8 @@ class Sequence
   def run_nncon(out_dir)
     path = self.generate_fasta_file_one_line
     puts "Starting NNCon #{self.abrev_name}"
-    puts "~/nncon1.0/bin/predict_ss_sa_cm.sh #{path} /#{path}/"
-    system "~/nncon1.0/bin/predict_ss_sa_cm.sh #{path} /#{path}/"
+    puts "~/nncon1.0/bin/predict_ss_sa_cm.sh #{path} #{out_dir}"
+    system "~/nncon1.0/bin/predict_ss_sa_cm.sh #{path} #{out_dir}"
     puts "Finsihed NNCon for #{self.abrev_name}"
   end
   
