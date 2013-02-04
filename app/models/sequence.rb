@@ -120,7 +120,7 @@ class Sequence
   def generate_fasta_file_one_line
     filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+".fasta"
     f = File.new(filepath, "w+")
-    f.write(">"+self.abrev_name+"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n")
+    f.write(">"+self.abrev_name + "\n")#"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n")
     f.write(self.a_asequences(:order=>[:seq_id], :fields=>[:amino_acid]).map{|aa| aa.amino_acid}.join(''))
     f.close
     return filepath
