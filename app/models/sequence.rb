@@ -133,6 +133,13 @@ class Sequence
     puts "Finsihed SVMCon for #{self.abrev_name}"
   end
   
+  def run_nncon(out_dir)
+    path = self.generate_fasta_file_one_line
+    puts "Starting NNCon #{self.abrev_name}"
+    system "~/nncon1.0/bin/predict_ss_sa_cm.sh #{path} temp_data/#{path}"
+    puts "Finsihed NNCon for #{self.abrev_name}"
+  end
+  
   def generate_fasta_string
     fasta_string = ">"+self.abrev_name+"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n"
     fasta_string = fasta_string + self.sequence + "\n"

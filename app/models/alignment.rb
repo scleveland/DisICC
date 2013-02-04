@@ -152,7 +152,25 @@ class Alignment
     thread_array.map{|t| t.join}
    end
   
-  
+   def run_nncon_threaded(thread_num = 4)
+     alignments = Alignment.all(:alignment_name => self.alignment_name)
+      alignment_array = []
+      alignments.each do |alignment|
+        alignment_array << alignment
+      end
+      Dir.mkdir("temp_data/#{self.alignment_name}/nncon") unless File.directory?("temp_data/#{self.alignment_name}/nncon")
+      thread_array=[]
+      thread_num.times do |i|
+        thread_array[i] = Thread.new{
+          while alignment_array.length > 0 do
+            alignment= alignment_array.pop
+            alignment.sequence.run_nncon("#{self.alignment_name}/nncon")
+          end
+       }
+     end
+     thread_array.map{|t| t.join}
+    end
+    
   def run_caps_threaded(thread_num = 6)
      self.run_align_assess
      Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
