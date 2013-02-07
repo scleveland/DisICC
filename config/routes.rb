@@ -22,6 +22,7 @@ Disicc::Application.routes.draw do
       get :percent_identities
       get :compensatory_brief_report
       get :disorder_brief_report
+      get :run_disorder
     end
     collection do
       get :upload
