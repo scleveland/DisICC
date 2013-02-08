@@ -11,9 +11,9 @@ class AAsequence
   property :deleted_at, ParanoidDateTime
   
   alias :AAsequence_id :id
-  belongs_to :sequence, 'Sequence', :child_key => [:seq_id]
+  belongs_to :sequence, 'Sequence', :child_key => [:seq_id], :parent_key => [:seq_id]
   #has n, :disorder, 'Disorder', :parent_key=>[:disorder_id]
-  has n, :disorder_values, 'DisorderValue', :child_key => [:disorder_value_id]
+  has n, :disorder_values, 'DisorderValue', :child_key => [:aasequence_id], :parent_key =>[:id]
   has 1, :xdet, 'Xdet', :child_key => :aasequence_id
   has 1, :conseq, 'Conseq', :child_key => :aasequence_id
 end
