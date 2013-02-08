@@ -97,6 +97,12 @@ GEM
       abstract (>= 1.0.0)
     extlib (0.9.15)
     fastercsv (1.5.4)
+    gmail (0.4.0)
+      gmail_xoauth (>= 0.3.0)
+      mail (>= 2.2.1)
+      mime (>= 0.1)
+    gmail_xoauth (0.4.1)
+      oauth (>= 0.3.6)
     i18n (0.5.0)
     jquery-rails (1.0.19)
       railties (~> 3.0)
@@ -108,8 +114,10 @@ GEM
       i18n (>= 0.4.0)
       mime-types (~> 1.16)
       treetop (~> 1.4.8)
+    mime (0.1)
     mime-types (1.17.2)
     mocha (0.9.12)
+    oauth (0.4.7)
     orm_adapter (0.0.7)
     polyglot (0.3.3)
     rack (1.2.5)
@@ -170,6 +178,7 @@ DEPENDENCIES
   dm-types (~> 1.0.2)
   dm-validations (~> 1.0.2)
   fastercsv
+  gmail
   jquery-rails
   rails (~> 3.0.1)
   railties (~> 3.0.1)
