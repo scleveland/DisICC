@@ -12,5 +12,5 @@ class NewCap
   property :create_at, DateTime, :required => false
   # has n, :disorder_values
   # belongs_to :sequence
-    belongs_to :sequence, 'Sequence', :child_key =>[:seq_id]
+    belongs_to :sequence, 'Sequence', :child_key =>[:seq_id], :parent_key => [:seq_id]
 end

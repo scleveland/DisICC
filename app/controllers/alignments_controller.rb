@@ -147,8 +147,11 @@ class AlignmentsController < ApplicationController
             seq = alignment.sequence
             seq.disorders.each do |disorder|
               temp_hash[disorder.disorder_type] = repository(:default).adapter.select("SELECT COUNT (*) FROM disorder_values where disorder_id =#{disorder.id}")#disorder.disorder_values.count
+              temp_hash["#{disorder.disorder_type}_id"] =disorder.disorder_id
             end
             temp_hash[:name] =seq.abrev_name
+            temp_hash[:id] = seq.id
+            temp_hash[:type] = seq.seq_type
             @dis_array[alignment.align_order] = temp_hash
          end
         }
@@ -316,16 +319,17 @@ class AlignmentsController < ApplicationController
     directory = "temp_data"
     new_file = File.join(directory,name)
     File.open(new_file, "wb"){ |f| f.write(params['datafile'].read)}
-    sequence_list = Sequence.create_sequences_from_fasta(new_file, current_user.id)
-    sequences = Sequence.all(:seq_id => sequence_list.map{|s| s.seq_id})
-    sequences = []
+    #sequence_list = Sequence.create_sequences_from_fasta(new_file, current_user.id)
+    #sequences = Sequence.all(:seq_id => sequence_list.map{|s| s.seq_id})
+    #sequences = []
     file = File.new(new_file, 'r')
     ff = Bio::FlatFile.new(Bio::FastaFormat, file)
     order_count = 0
     ff.each_entry do |f|
       puts f.definition
       seq = Sequence.create_sequence_from_bioruby_fasta_entry(f, params[:seq_type],current_user.id)
-      alignment = Alignment.create(:seq_id => seq.seq_id,
+      puts seq.abrev_name
+      alignment = Alignment.create(:seq_id => seq.id,
                         :alignment_name => params[:alignment_name],
                         :align_order => order_count,
                         :alignment_sequence =>f.naseq)
@@ -449,16 +453,16 @@ class AlignmentsController < ApplicationController
             puts alignment.sequence.abrev_name + ":STARTED"
             AAsequence.all(:seq_id => alignment.seq_id).each do |aaseq|
               count = 0
-              if !IntraResidueContact.first(:seq_id => aaseq.seq_id, :first_residue=> aaseq.original_position).nil?
-                count +=1
-              elsif !IntraResidueContact.first(:seq_id => aaseq.seq_id, :second_residue=> aaseq.original_position).nil?
-                count +=1
-              end
-              if !Conseq.first(:aasequence_id => aaseq.AAsequence_id).nil?
-                if Conseq.first(:aasequence_id => aaseq.AAsequence_id).color < 4
-                  count +=1
-                end
-              end
+              # if !IntraResidueContact.first(:seq_id => aaseq.seq_id, :first_residue=> aaseq.original_position).nil?
+              #                 count +=1
+              #               elsif !IntraResidueContact.first(:seq_id => aaseq.seq_id, :second_residue=> aaseq.original_position).nil?
+              #                 count +=1
+              #               end
+              #               if !Conseq.first(:aasequence_id => aaseq.AAsequence_id).nil?
+              #                 if Conseq.first(:aasequence_id => aaseq.AAsequence_id).color < 4
+              #                   count +=1
+              #                 end
+              #               end
               if !Xdet.first(:aasequence_id => aaseq.AAsequence_id).nil?
                 if Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation > 0.0 || Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation == -2
                   count +=1
@@ -469,7 +473,7 @@ class AlignmentsController < ApplicationController
               elsif !NewCap.first(:seq_id=> aaseq.seq_id, :position_two => aaseq.original_position).nil?
                 count +=1
               end
-              aaseq.contact_consensus = count /4
+              aaseq.contact_consensus = count /2#4
               aaseq.save
             end  
             puts alignment.sequence.abrev_name + ":DONE"
@@ -707,10 +711,10 @@ class AlignmentsController < ApplicationController
     @alignment_name = Alignment.get(params[:id]).alignment_name
     Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, 
                                 :order => [:align_order.asc]).each do |alignment|
-      if AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gt => 0.75).count > 0
+      if AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gte => 0.5).count > 0
         @seq_contact_count += 1
       end
-      puts Sequence.first(:seq_id => alignment.seq_id).abrev_name + ":" + AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gt => 0.75).count.to_s
+      puts Sequence.first(:seq_id => alignment.seq_id).abrev_name + ":" + AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gte => 0.5).count.to_s
       if alignment.alignment_sequence.length > longest_alignment
         longest_alignment = alignment.alignment_sequence.length
       end
@@ -736,7 +740,7 @@ class AlignmentsController < ApplicationController
                 amino_acid = AAsequence.first(:id => position.aasequence_id)
                 cap_res = Caps.first(:aasequence_id => amino_acid.AAsequence_id)
                 cap_color =0
-                if amino_acid.contact_consensus > 0.75 #@contact_consensus_array[@cur_position] > 1
+                if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
                   cap_color = 1
                 # @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
                 end
@@ -751,7 +755,7 @@ class AlignmentsController < ApplicationController
                cap_res = Caps.first(:aasequence_id => amino_acid.AAsequence_id)
                 cap_color =0
                 cap_color =0
-                if amino_acid.contact_consensus > 0.75 #@contact_consensus_array[@cur_position] > 1
+                if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
                   cap_color = 1
                   # @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
                 end

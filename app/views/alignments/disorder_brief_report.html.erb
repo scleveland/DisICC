@@ -1,0 +1,44 @@
+<script>
+ $(document).ready(function() {
+     $('#alignments').dataTable();
+ } );
+</script>
+<h1>Listing alignment Disorders</h1>
+
+<table border=1 id="alignments" style="width: 400px; height: 300px;">
+  <thead>
+  <tr>
+    <th>Sequence</th>
+    <th>ID</th>
+    <tH>Type</th>
+    <%- @disorder_types.each do |d| -%>
+      <th><%=d%></th>
+    <%-end-%>
+  </tr>
+  </thead>
+  <tbody>
+<% @dis_array.each do |v| %>
+  <tr>
+    
+    <td>
+      <%= v[:name] %>
+    </td>
+    <td>
+      <%= v[:id] %>
+    </td>
+    <td>
+      <%= v[:type] %>
+    </td>
+    <%- @disorder_types.each do |d| -%>
+      <td><a href="<%=disorder_path(v[d+"_id"])%>"><%=v[d]%></a></td>
+    <%-end-%>
+  </tr>
+  
+<% end %>
+ </tbody>
+</table>
+
+<br />
+<br />
+<%= link_to 'Back', root_path %>
+<br /><br />

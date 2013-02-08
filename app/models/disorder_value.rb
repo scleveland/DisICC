@@ -9,7 +9,7 @@ class DisorderValue
   #alias :id :disorder_value_id
   #alias :disorder_value_id :id
   belongs_to :disorder, 'Disorder'#, :parent_key => [:disorder_id], :child_key => [:disorder_value_id], :required => true  
-  belongs_to :a_asequence, 'AAsequence', :child_key=>[:aasequence_id]
+  belongs_to :a_asequence, 'AAsequence', :child_key=>[:aasequence_id], :parent_key=>[:id]
   
   def id
     self.disorder_value_id

@@ -10,7 +10,7 @@ class Alignment
   property :deleted_at, ParanoidDateTime
   
   # has n, :disorder_values
-  has 1, :sequence, 'Sequence', :child_key => [:seq_id]
+  has 1, :sequence, 'Sequence', :child_key => [:seq_id], :parent_key => [:seq_id]
   
   #validates_uniqueness_of :alignment_name
   
@@ -31,7 +31,7 @@ class Alignment
   def sequences
     alignments = Alignment.all(:alignment_name => self.alignment_name, :order=>[:align_order])
     seq_ids = alignments.map{|a| a.seq_id}
-    Sequence.all(:id=>seq_ids)
+    Sequence.all(:seq_id=>seq_ids)
   end
   
   
@@ -87,11 +87,12 @@ class Alignment
   def run_caps_mac
     self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
+    Dir.mkdir("temp_data/#{self.alignment_name}/caps") unless File.directory?("temp_data/#{self.alignment_name}/caps")
     alignments = Alignment.all(:alignment_name => self.alignment_name)
     alignments.each do |alignment|
-      alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}")
+      alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}/caps")
     end
-    system "./lib/comp_apps/caps/caps_mac -F temp_data/#{self.alignment_name} --intra"
+    system "./lib/comp_apps/caps/caps_mac -F temp_data/#{self.alignment_name}/caps --intra"
   end
   
   def run_caps

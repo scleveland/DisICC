@@ -7,6 +7,7 @@ Disicc::Application.routes.draw do
       get :run_disorder
       get :disorder_consensus
       get :download_disorder
+      get :calculate_disorder_consensus
     end
   end
   resources :a_asequencs

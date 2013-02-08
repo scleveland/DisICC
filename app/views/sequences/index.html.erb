@@ -20,6 +20,7 @@
     <th></th>
     <th></th>
     <th></th>
+    <th></th>
   </tr>
   </thead>
   <tbody>
@@ -37,6 +38,7 @@
     <td><%= link_to 'Show', sequence %></td>
     <td><%= link_to 'Consensus', disorder_consensus_sequence_path(sequence) %></td>
     <td><%= link_to 'Edit', edit_sequence_path(sequence) %></td>
+    <td><%= link_to 'Calculate Disorder Consensus', calculate_disorder_consensus_sequence_path(sequence) %></td>
     <td><%= link_to 'Run Disorder', run_disorder_sequence_path(sequence) %></td>
     <td><%= button_to 'Destroy', sequence, :confirm => 'Are you sure?', :method => :delete %></td>
   </tr>

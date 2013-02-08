@@ -12,5 +12,5 @@ class IntraResidueContact
   property :d2, Integer, :required => false
   property :type, String, :required => false
   
-  belongs_to :sequence, 'Sequence', :child_key => :seq_id
+  belongs_to :sequence, 'Sequence', :child_key => :seq_id, :parent_key => [:seq_id]
 end

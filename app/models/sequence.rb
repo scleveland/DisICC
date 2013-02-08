@@ -3,7 +3,7 @@
 class Sequence 
   include DataMapper::Resource
   
-  property :id, Serial, :field=>'seq_id'
+  property :seq_id, Serial#, :field=>'seq_id'
   property :seq_name, String, :required => true, :length => 256
   property :sequence, Text, :required => true
   property :seq_type, String, :required => false
@@ -14,6 +14,8 @@ class Sequence
   property :owner, Integer, :required => true, :default => 1
   property :deleted_at, ParanoidDateTime
   
+ # alias :seq_id :id
+  alias :id :seq_id
   has n, :a_asequences, 'AAsequence', :child_key=>[:seq_id]
   has n, :users, :through =>Resource
   has n, :disorders, 'Disorder', :child_key=>[:seq_id]
@@ -56,12 +58,15 @@ class Sequence
   end
   
   def self.create_sequence_from_bioruby_fasta_entry(fasta_entry, seq_type, owner=1)
-    seq = self.create(:seq_name=>fasta_entry.definition, 
+    seq = self.new(:seq_name=>fasta_entry.definition, 
              :abrev_name=>fasta_entry.definition[0..3],
              :seq_type=>seq_type,
              :sequence => fasta_entry.naseq.gsub('-',''), 
-             :owner=>owner)
+             :owner=>owner,
+             )
+    seq.valid?
     puts seq.errors.inspect()
+    seq.save
     seq.generate_aasequences()
     seq
   end
@@ -150,6 +155,10 @@ class Sequence
     fasta_string = ">"+self.abrev_name+"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n"
     fasta_string = fasta_string + self.a_asequences(:order=>[:seq_id], :fields=>[:amino_acid]).map{|aa| aa.amino_acid}.join('') + "\n"
   end
+  
+  def sequence_one_line
+    fasta_string = self.a_asequences(:order=>[:seq_id], :fields=>[:amino_acid]).map{|aa| aa.amino_acid}.join('')
+  end
   #### DISORDER ####
   
   def generate_iupred_disorder
@@ -232,22 +241,23 @@ class Sequence
     dis_ids = self.disorders.map{|k| k.disorder_id}
     puts dis_ids.join(',')
     AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
-      dis_sum = 0
-      dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
-      dvs = dvals.map{|c| c.dvalue}
-      puts "DVals: " + dvs.join(',').to_s
-      dis_sum = dvs.inject{|sum,x| sum + x }
-      puts "Sum: " + dis_sum.to_s
-        # if disorder_types.include?("DisEMBL Hotloops")
-        #   dis_sum = dis_sum + 0.38 
-        #   dis_num = dis_ids.length
-        # end
-      #end
-      if dvals.count > 0
-        aa.disorder_consensus = dis_sum/dvals.count
-      else
-        aa.disorder_consensus = 0
-      end
+      # dis_sum = 0
+      #       dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
+      #       dvs = dvals.map{|c| c.dvalue}
+      #       puts "DVals: " + dvs.join(',').to_s
+      #       dis_sum = dvs.inject{|sum,x| sum + x }
+      #       puts "Sum: " + dis_sum.to_s
+      #         # if disorder_types.include?("DisEMBL Hotloops")
+      #         #   dis_sum = dis_sum + 0.38 
+      #         #   dis_num = dis_ids.length
+      #         # end
+      #       #end
+      #       if dvals.count > 0
+      #         aa.disorder_consensus = dis_sum/dvals.count
+      #       else
+      #         aa.disorder_consensus = 0
+      #       end
+      aa.disorder_consensus = aa.disorder_values.avg(:dvalue)
       puts "Consensus: "+aa.disorder_consensus.to_s
       aa.save
     end
@@ -264,22 +274,23 @@ class Sequence
       thread_array[i] = Thread.new{
         while aa_array.length > 0 do
           aa = aa_array.pop
-          dis_sum = 0
-          dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
-          dvs = dvals.map{|c| c.dvalue}
-          puts "DVals: " + dvs.join(',').to_s
-          dis_sum = dvs.inject{|sum,x| sum + x }
-          puts "Sum: " + dis_sum.to_s
-          # if disorder_types.include?("DisEMBL Hotloops")
+          # dis_sum = 0
+          #           dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
+          #           dvs = dvals.map{|c| c.dvalue > 0.5 ? 1 : 0 }
+          #           puts "DVals: " + dvs.join(',').to_s
+          #           dis_sum = dvs.inject{|sum,x| sum + x }
+          #           puts "Sum: " + dis_sum.to_s
+          #           # if disorder_types.include?("DisEMBL Hotloops")
           #   dis_sum = dis_sum + 0.38 
           #   dis_num = dis_ids.length
           # end
           #end
-          if dvals.count > 0
-            aa.disorder_consensus = dis_sum/dvals.count
-          else
-            aa.disorder_consensus = 0
-          end
+          #if dvals.count > 0
+          #  aa.disorder_consensus = dis_sum/dvals.count
+          #else
+          #  aa.disorder_consensus = 0
+          #end
+          aa.disorder_consensus = aa.disorder_values.avg(:dvalue)
           puts "Consensus: "+aa.disorder_consensus.to_s
           aa.save
         end
@@ -351,6 +362,27 @@ class Sequence
        end
      end
    end
+
+   def generate_disopred
+     unless self.disorders.first(:disorder_type=>"Disopred")
+       url ="http://bioinf.cs.ucl.ac.uk/psipred/submit"
+       cur = Curl::Easy.new(url)
+       post_params= "email=x58z545@montana.edu&program_disopred=1&sequence=#{self.sequence_one_line}&subject=#{self.abrev_name}_Disopred|#{self.id}&falseRate=2&output=opnone  "
+       cur.http_post(post_params)
+       puts post_params
+       puts cur.body_str.to_s
+       s =cur.body_str.to_s.split('<pre>')
+       a = s[2].split("</pre>")
+       filepath= "temp_data/#{self.abrev_name}_Disopred"
+       f = File.new(filepath, "w+")
+       f.write(a[0].to_s)
+       f.close 
+       puts filepath
+       #self.store_ronn(filepath)
+     else
+       puts "Disopred Already Stored!***********************"
+     end
+    end
 
    def run_cornet
      unless !self.intra_residue_contacts.first.nil?
