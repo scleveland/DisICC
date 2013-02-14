@@ -34,6 +34,14 @@ class Sequence
     end
   end
   
+  def clean_up_abrev
+    if (self.abrev_name.count "/") > 0
+      puts "yes"
+      self.abrev_name = self.abrev_name.split("/")[0]
+      self.save
+    end
+  end
+  
   # create_sequence_from_fasta
   # This reads a fasta file and stores the sequences in the database if it doesn't already 
   # exist.  This means that the sequence and definition must match exactly otherwise a new
@@ -268,7 +276,9 @@ class Sequence
     AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
       aa_array << aa
     end
-    @dis_ids = self.disorders.map{|k| k.disorder_id}
+    dis_ids = self.disorders.all(:disorder_type.not =>["DisEMBL Hotloops", "DisEMBL Coils"]).map{|k| k.disorder_id}
+    dis_hl = self.disorders.first(:disorder_type => "DisEMBL Hotloops")
+    dis_c = self.disorders.first(:disorder_type => "DisEMBL Coils")
     thread_array=[]
     thread_num.times do |i|
       thread_array[i] = Thread.new{
@@ -290,7 +300,18 @@ class Sequence
           #else
           #  aa.disorder_consensus = 0
           #end
-          aa.disorder_consensus = aa.disorder_values.avg(:dvalue)
+          aa.disorder_consensus = aa.disorder_values.all(:disorder_id => dis_ids, :dvalue.gte => 0.5 ).count#.avg(:dvalue)
+          if !dis_hl.nil?
+            if !aa.disorder_values.first(:disorder_id => dis_hl.id, :dvalue.gte => dis_hl.threshold).nil?
+            aa.disorder_consensus  = aa.disorder_consensus + 1
+            end
+          end
+          if !dis_c.nil?
+            if !aa.disorder_values.first(:disorder_id => dis_c.id, :dvalue.gte => dis_c.threshold).nil?
+            aa.disorder_consensus  = aa.disorder_consensus + 1
+            end
+          end
+          aa.disorder_consensus = aa.disorder_consensus/self.disorders.count
           puts "Consensus: "+aa.disorder_consensus.to_s
           aa.save
         end
@@ -415,7 +436,7 @@ class Sequence
           url ="http://iris.rnet.missouri.edu/cgi-bin/dncon/submit_job.cgi"
           cur = Curl::Easy.new(url)
           #cur.multipart_form_post = true
-          post_params= "email_address=sean.b.cleveland@gmail.com&job_title=#{self.abrev_name}&protein_sequence=#{self.sequence}&to_take=l"
+          post_params= "email_address=disiccapp@gmail.com&job_title=#{self.abrev_name}&protein_sequence=#{self.sequence}&to_take=l"
           cur.http_post(post_params)
           puts post_params
           puts cur.body_str.to_s
@@ -498,11 +519,12 @@ class Sequence
        f = s[1].split(">smoothed scores</a>")
        a = f[0].to_s.gsub("\n<td><a href=",'').gsub('"','')
        file_url = "http://dis.embl.de/" + a
-
+       threshold = cur.body_str.to_s.split("<th>Thresholds used</th>\n<td>")[1].split("</td>")[0];
        file_cur= Curl::Easy.new(file_url)
        file_cur.http_post()
        filepath= "temp_data/#{self.abrev_name}_Disembl"
        f = File.new(filepath, "w+")
+       f.write(threshold + "\n")
        f.write(file_cur.body_str)
        f.close #this will be the smoothed scores file
        self.store_disembl(filepath)
@@ -523,7 +545,7 @@ class Sequence
      while (line = file.gets)
        #puts "#{counter}: #{line}"
        counter = counter + 1
-       if counter > 2
+       if counter > 3
          line_array = line.split('      ')
          if aa = AAsequence.first(:seq_id => self.id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
@@ -532,7 +554,17 @@ class Sequence
            DisorderValue.create(:disorder_id => dis_hl.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
          end
          aa_count +=1
+        elsif counter == 2
+          coil = line.split("rem")[0].gsub("coils=",'').to_f
+          loop = line.split("loops=")[1].to_f
+          dis_hl.threshold = loop
+          dis_coil.threshold = coil
+          dis_hl.save
+          dis_coil.save
+        
        end
+     
+      
      end
    end
 

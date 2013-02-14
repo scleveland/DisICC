@@ -95,6 +95,17 @@ class Alignment
     system "./lib/comp_apps/caps/caps_mac -F temp_data/#{self.alignment_name}/caps --intra"
   end
   
+  def run_caps_mac_with_old_fasta
+    #self.run_align_assess
+    # Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
+    #     Dir.mkdir("temp_data/#{self.alignment_name}/caps") unless File.directory?("temp_data/#{self.alignment_name}/caps")
+    #     alignments = Alignment.all(:alignment_name => self.alignment_name)
+    #     alignments.each do |alignment|
+    #       alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}/caps")
+    #     end
+    system "./lib/comp_apps/caps/caps_mac -F temp_data/#{self.alignment_name}/caps --intra"
+  end
+  
   def run_caps
     self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
@@ -152,6 +163,28 @@ class Alignment
     end
     thread_array.map{|t| t.join}
    end
+  
+  
+   def run_dncon_threaded(thread_num = 1)
+     alignments = Alignment.all(:alignment_name => self.alignment_name)
+      alignment_array = []
+      alignments.each do |alignment|
+        if PercentIdentity.all(:seq1_id => alignment.sequence.seq_id, :percent_id.gt => 25,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count >= 10
+          alignment_array << alignment
+        end
+      end
+      thread_array=[]
+      thread_num.times do |i|
+        thread_array[i] = Thread.new{
+          while alignment_array.length > 0 do
+            alignment= alignment_array.pop
+            puts alignment.sequence.abrev_name + ": DNCON"
+            alignment.sequence.run_dncon
+          end
+       }
+     end
+     thread_array.map{|t| t.join}
+    end
   
    def run_nncon_threaded(thread_num = 4)
      alignments = Alignment.all(:alignment_name => self.alignment_name)
