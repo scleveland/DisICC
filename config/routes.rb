@@ -24,6 +24,8 @@ Disicc::Application.routes.draw do
       get :compensatory_brief_report
       get :disorder_brief_report
       get :run_disorder
+      get :calculate_pids
+      get :download_disorder_alignment
     end
     collection do
       get :upload
