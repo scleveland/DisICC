@@ -344,7 +344,8 @@ class AlignmentsController < ApplicationController
                         :alignment_name => params[:alignment_name],
                         :align_order => order_count,
                         :alignment_sequence =>f.naseq)
-      alignment_to_positions(alignment)   
+      #alignment_to_positions(alignment) 
+      alignment.alignment_to_positions  
       order_count += 1
       begin
         seq.run_and_store_disorder()
@@ -395,7 +396,8 @@ class AlignmentsController < ApplicationController
           logger.debug "VALID"
           logger.debug { @alignment.errors.inspect }
           @alignment.save
-          alignment_to_positions(@alignment)              
+          alignment_to_positions(@alignment)
+          @alignment.alignment_to_positions            
           #this is the sequene label
           abrev_name = line.gsub(">", "")
 

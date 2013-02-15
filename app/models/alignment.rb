@@ -24,6 +24,52 @@ class Alignment
     end
   end
   
+  def alignments_to_positions_threaded(thread_num=4)
+    alignments = Alignment.all(:alignment_name => self.alignment_name, :order=>[:align_order])
+    alignment_array = []
+    alignments.each do |alignment|
+      alignment_array << alignment
+    end
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+        while alignment_array.length > 0 do
+          align = alignment_array.pop
+          AlignmentPosition.all(:alignment_id => align.align_id).destroy
+          align.alignment_to_positions()
+        end
+     }
+    end
+    thread_array.map{|t| t.join}
+  end
+  
+  def alignment_to_positions
+    puts self.sequence.abrev_name
+    counter = 0
+    aa_counter = 0
+    sequence= self.sequence
+    self.alignment_sequence.each_char do |aa|
+      if aa != "-"
+        #puts "counter: "+ counter.to_s + "  |aa :" + aa
+        aaseq = sequence.a_asequences.first(:original_position=> aa_counter)
+        #if !aaseq.nil?
+          AlignmentPosition.create(:alignment_id => self.align_id,
+                            :position => counter,
+                            :aasequence_id => aaseq.AAsequence_id)
+        #end
+        aa_counter +=1
+      end
+      counter +=1
+    end
+  end
+  
+  def length_report
+    alignments = Alignment.all(:alignment_name => self.alignment_name, :order=>[:align_order])
+    alignments.each do |a|
+      puts a.sequence.abrev_name + ": " + a.alignment_sequence.length.to_s + "  |seq_length :" + a.sequence.a_asequences.count.to_s
+    end
+  end
+  
   def sequence
     Sequence.get(self.seq_id)
   end
