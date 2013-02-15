@@ -245,31 +245,31 @@ class Sequence
     end
   end
   
-  def calculate_disorder_consensus()#disorder_types)
-    dis_ids = self.disorders.map{|k| k.disorder_id}
-    puts dis_ids.join(',')
-    AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
-      # dis_sum = 0
-      #       dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
-      #       dvs = dvals.map{|c| c.dvalue}
-      #       puts "DVals: " + dvs.join(',').to_s
-      #       dis_sum = dvs.inject{|sum,x| sum + x }
-      #       puts "Sum: " + dis_sum.to_s
-      #         # if disorder_types.include?("DisEMBL Hotloops")
-      #         #   dis_sum = dis_sum + 0.38 
-      #         #   dis_num = dis_ids.length
-      #         # end
-      #       #end
-      #       if dvals.count > 0
-      #         aa.disorder_consensus = dis_sum/dvals.count
-      #       else
-      #         aa.disorder_consensus = 0
-      #       end
-      aa.disorder_consensus = aa.disorder_values.avg(:dvalue)
-      puts "Consensus: "+aa.disorder_consensus.to_s
-      aa.save
-    end
-  end
+  #  def calculate_disorder_consensus()#disorder_types)
+  #   dis_ids = self.disorders.map{|k| k.disorder_id}
+  #   puts dis_ids.join(',')
+  #   AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
+  #     # dis_sum = 0
+  #     #       dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
+  #     #       dvs = dvals.map{|c| c.dvalue}
+  #     #       puts "DVals: " + dvs.join(',').to_s
+  #     #       dis_sum = dvs.inject{|sum,x| sum + x }
+  #     #       puts "Sum: " + dis_sum.to_s
+  #     #         # if disorder_types.include?("DisEMBL Hotloops")
+  #     #         #   dis_sum = dis_sum + 0.38 
+  #     #         #   dis_num = dis_ids.length
+  #     #         # end
+  #     #       #end
+  #     #       if dvals.count > 0
+  #     #         aa.disorder_consensus = dis_sum/dvals.count
+  #     #       else
+  #     #         aa.disorder_consensus = 0
+  #     #       end
+  #     aa.disorder_consensus = aa.disorder_values.avg(:dvalue)
+  #     puts "Consensus: "+aa.disorder_consensus.to_s
+  #     aa.save
+  #   end
+  # end
   
   def calculate_disorder_consensus_threaded(thread_num = 100)#disorder_types)
     aa_array =[]
@@ -757,6 +757,28 @@ class Sequence
       jalview_string = jalview_string + "None #{self.abrev_name} -1 #{counter} #{counter} #{feature_type}"+"\n"
    end
    return jalview_string
+  end
+  
+  def generate_jalview_annotation_consensus()
+    File.open("#{self.abrev_name}_#{self.seq_type}.gff", 'w') do |f1| 
+      AAsequence.all(:seq_id => self.seq_id, :disorder_consensus.gte => 0.5).each do |aa|
+        if aa.disorder_consensus > 0.5 && aa.disorder_consensus < 0.6
+          feature_type = "low disorder"
+        elsif aa.disorder_consensus >= 0.6 && aa.disorder_consensus < 0.7
+          feature_type = "avg disorder"
+        elsif aa.disorder_consensus >= 0.7 && aa.disorder_consensus < 0.8
+          feature_type = "medium disorder"
+        elsif aa.disorder_consensus >= 0.8 && aa.disorder_consensus < 0.9
+          feature_type = "highly disordered"
+        elsif aa.disorder_consensus > 0.9
+          feature_type = "extremely disordered"
+        else
+          feature_type = "no disorder"
+        end
+        f1.puts "None #{self.abrev_name} -1 #{aa.original_position} #{aa.original_position} #{feature_type}"
+     end
+   end
+   #return jalview_string
   end
   
   def set_aasequence_defaults
