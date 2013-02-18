@@ -1,3 +1,4 @@
+config/database.yml
 log/development.log
 temp_data/*
 BDV_L.gff
