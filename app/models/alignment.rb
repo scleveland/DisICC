@@ -798,14 +798,14 @@ class Alignment
       thread_array[i] = Thread.new{
          while seq_array.length > 0 do
             seq = seq_array.pop
-            puts filename = "temp_data/#{self.alignment_name}_#{seq.abrev_name}_pid.out"#fasta.out"
+            puts filename = "temp_data/#{self.alignment_name}_#{seq.abrev_name}_pid.fasta.out"
             if File.exists?(filename)
               puts "File exists"
               file = File.new(filename, "r")
               start_line = 99999999999
               line_num = 1
               while (line = file.gets)
-                if line.include?('Posicion')
+                if line.include?('Posicion') ||  line.include?('Position') 
                   start_line = line_num + 1
                 end
                 if line_num > start_line
