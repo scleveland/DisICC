@@ -477,7 +477,7 @@ class Alignment
                 xd.save
                 rescue Exception => e
                   puts "Something went not right. It went wrong in fact. It went uncorrect.!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-                  put e.message
+                  puts e.message
                 end
             end #end while
           end #end if
