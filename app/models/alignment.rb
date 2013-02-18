@@ -487,6 +487,49 @@ class Alignment
     thread_array.map{|t| t.join}
   end
 
+  def import_xdet_new(thread_num=4)
+    alignments = Alignment.all(:alignment_name => self.alignment_name)
+    alignment_array = []
+    alignments.each do |a|
+      alignment_array << a
+    end
+    thread_array=[]
+    thread_num.times do |i|
+    thread_array[i] = Thread.new{
+       while alignment_array.length > 0 do
+          alignment = alignment_array.pop
+          puts filename = "temp_data/#{alignment.alignment_name}/#{alignment.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta_xdet"#fasta.out"
+          if File.exists?(filename)
+            puts "File exists"
+            puts "File exists"
+            puts "File exists**************************************************************************************************************"
+            file = File.new(filename, "r")
+            while (line = file.gets)
+                break if line == "\n"
+                results = line.split
+                puts "Postion:"+results[0]+ "| Conservation:" + results[4] + "| Correlation:" + results[8]
+                begin
+                xd = Xdet.new(
+                  :aasequence_id =>AlignmentPosition.first(:position=> results[0].to_i-1,:alignment_id=>alignment.align_id).aasequence_id,
+                  :conservation => results[8].to_f, 
+                  :correlation => results[4].to_f, 
+                  :seq_id => seq.seq_id
+                )  
+                xd.valid?
+                puts xd.errors.inspect()
+                xd.save
+                rescue Exception => e
+                  puts "Something went not right. It went wrong in fact. It went uncorrect.!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                  puts e.message
+                end
+            end #end while
+          end #end if
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
+
   def run_xdet
     self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
