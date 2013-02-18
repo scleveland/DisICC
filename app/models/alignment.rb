@@ -513,7 +513,7 @@ class Alignment
                   :aasequence_id =>AlignmentPosition.first(:position=> results[0].to_i-1,:alignment_id=>alignment.align_id).aasequence_id,
                   :conservation => results[8].to_f, 
                   :correlation => results[4].to_f, 
-                  :seq_id => seq.seq_id
+                  :seq_id => alignment.sequence.seq_id
                 )  
                 xd.valid?
                 puts xd.errors.inspect()
