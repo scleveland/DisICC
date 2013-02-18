@@ -502,7 +502,7 @@ class AlignmentsController < ApplicationController
     @pids = {}
     @alignments =  Alignment.all(:alignment_name => @align.alignment_name, :order=>[:align_order])
     @alignments.each do |alignment|
-      @pids[alignment.sequence.id] =  PercentIdentity.all(:seq1_id => alignment.sequence.id, :percent_id.gt => 25,:percent_id.lt => 90, :alignment_name => @align.alignment_name)
+      @pids[alignment.sequence.id] =  PercentIdentity.all(:seq1_id => alignment.sequence.id, :percent_id.gt => 19,:percent_id.lt => 100, :alignment_name => @align.alignment_name)
     end
   end
   
