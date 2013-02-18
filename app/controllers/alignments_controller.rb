@@ -857,7 +857,7 @@ class AlignmentsController < ApplicationController
                     :order => [:alignment_position_id.asc]).each do |position|
               if position.position == @cur_position
                 amino_acid = AAsequence.first(:id => position.aasequence_id)
-                cap_res = Caps.first(:aasequence_id => amino_acid.AAsequence_id)
+                cap_res = NewCap.first(:aasequence_id => amino_acid.AAsequence_id)
                 cap_color =0
                 if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
                   cap_color = 1
@@ -871,7 +871,7 @@ class AlignmentsController < ApplicationController
                 cur_position += 1
                end
                amino_acid = AAsequence.first(:id => position.aasequence_id)
-               cap_res = Caps.first(:aasequence_id => amino_acid.AAsequence_id)
+               cap_res = NewCap.first(:aasequence_id => amino_acid.id)
                 cap_color =0
                 cap_color =0
                 if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1

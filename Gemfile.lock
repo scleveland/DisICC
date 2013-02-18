@@ -164,7 +164,7 @@ DEPENDENCIES
   actionmailer (~> 3.0.1)
   actionpack (~> 3.0.1)
   activesupport (~> 3.0.1)
-  bio
+  bio (= 1.4.3)
   curb
   dm-aggregates (~> 1.0.2)
   dm-constraints (~> 1.0.2)
