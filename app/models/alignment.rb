@@ -791,7 +791,12 @@ class Alignment
   def import_caps_threaded(thread_num=4)
     seq_array = []
     self.sequences.each do |seq|
-      seq_array << seq
+      if NewCap.all(:seq_id => seq.seq_id).count <= 0 
+         seq_array << seq
+         puts seq.abrev_name
+      else
+        puts seq.seq_name + "| " + NewCap.all(:seq_id => seq.seq_id).count.to_s
+      end
     end
     thread_array=[]
     thread_num.times do |i|
@@ -810,26 +815,29 @@ class Alignment
                 end
                 if line_num > start_line
                   break if line == "\n"
-                  results = line.split
-                  puts "Result0:"+results[0]
-                  puts "Result1:"+results[1]
-                  puts results[0].split('(')[1]
-                  position_one= results[0].split('(')[1].gsub(')','').to_i - 1
-                  aasequence_one = AAsequence.first(:seq_id=> seq.seq_id, :original_position=>position_one)
-                  puts results[1].split('(')[1]
-                  position_two = results[1].split('(')[1].gsub(')','').to_i - 1
-                  aasequence_two = AAsequence.first(:seq_id=> seq.seq_id, :original_position=>position_two)
-                  mean_one = results[2].to_f
-                  mean_two = results[3].to_f
-                  correlation = results[4].to_f
-                  NewCap.create(:aasequence_id => aasequence_one.AAsequence_id,
-                              :position_one => position_one,
-                              :position_two => position_two,
-                              :mean_one => mean_one,
-                              :mean_two => mean_two,
-                              :correlation => correlation,
-                              :seq_id => seq.seq_id )
-
+                  begin
+                    results = line.split
+                    puts "Result0:"+results[0]
+                    puts "Result1:"+results[1]
+                    puts results[0].split('(')[1]
+                    position_one= results[0].split('(')[1].gsub(')','').to_i - 1
+                    aasequence_one = AAsequence.first(:seq_id=> seq.seq_id, :original_position=>position_one)
+                    puts results[1].split('(')[1]
+                    position_two = results[1].split('(')[1].gsub(')','').to_i - 1
+                    aasequence_two = AAsequence.first(:seq_id=> seq.seq_id, :original_position=>position_two)
+                    mean_one = results[2].to_f
+                    mean_two = results[3].to_f
+                    correlation = results[4].to_f
+                    NewCap.create(:aasequence_id => aasequence_one.AAsequence_id,
+                                :position_one => position_one,
+                                :position_two => position_two,
+                                :mean_one => mean_one,
+                                :mean_two => mean_two,
+                                :correlation => correlation,
+                                :seq_id => seq.seq_id )
+                  rescue Exception => e
+                    puts e.message
+                  end
                 end
                 line_num +=1
               end #end while
@@ -839,5 +847,20 @@ class Alignment
     end
     thread_array.map{|t| t.join}
   end
+  
+  def evaluate_caps_distances(thread_num = 200)
+    self.sequences.each do |s|
+      s.evaluate_new_caps_distances(thread_num)
+    end
+  end
 
+  def caps_report
+    self.sequences.each do |s|
+      caps_count = s.new_caps_count
+      gtt = s.new_caps_count_gt_twenty
+      gtf = s.new_caps_count_gt_50
+      gth = s.new_caps_count_gt_100
+      puts s.abrev_name + "\t| Caps Count: " + caps_count.to_s + "\t | Caps GTT Count: " + gtt.to_s + ", (%20): " + (caps_count > 0 ? (gtt/caps_count).to_s : "0") +  "\t|CAPS GTF: " + gtf.to_s + ", (%50): " + (caps_count > 0 ? (gtf/caps_count).to_s : "0") + "\t|CAPS GTH: " + gth.to_s + ", (%100): " + (caps_count > 0 ? (gth/caps_count).to_s : "0") 
+    end
+  end
 end

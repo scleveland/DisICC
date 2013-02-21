@@ -1,6 +1,6 @@
 <script>
  $(document).ready(function() {
-     $('#alignments').dataTable();
+     $('#alignments').dataTable({"bPaginate": false});
  } );
 </script>
 <h1>Listing alignment CICPs for <%= @alignment_name %></h1>
@@ -10,15 +10,21 @@
   <tr>
     <th>Sequence</th>
     <th>SeqID</th>
+    <th>Caps Count</th>
     <th>PID</th>
-    <th>intra-res contact</th>
-    <th>conseq</th>
-    <th>xdet</th>
-    <th>caps</th>
+    <th>20</th>
+    <th>50</th>
+    <% count = 100%>
+    <% while count < 2600 %>
+      <th>
+        <%= count.to_s %>
+      </th>
+      <%count = count + 100%>
+    <% end %>
   </tr>
   </thead>
   <tbody>
-<% @comp_array.each do |v| %>
+<% @caps_array.each do |v| %>
   <tr>
     
     <td>
@@ -28,20 +34,24 @@
       <%= v[:id] %>
     </td>
     <td>
+      <%= v[:caps_count] %>
+    </td>
+    <td>
       <%= v[:pids] %>
     </td>
     <td>
-      <%= v[:intra]%>
+      <%= v["20"] %>
     </td>
     <td>
-      <%= v[:conseq] %>
+      <%= v["50"]%>
     </td>
-    <td>
-      <%= v[:xdet] %>
-    </td>
-    <td>
-      <%= v[:new_caps] %>
-    </td>
+    <% count = 100%>
+    <% while count < 2600 %>
+      <td>
+        <%= v[count.to_s] %>
+      </td>
+      <%count = count + 100%>
+    <% end %>
   </tr>
   
 <% end %>
