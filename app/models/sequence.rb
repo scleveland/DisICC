@@ -834,6 +834,216 @@ class Sequence
       end #end if
   end
   
+  #
+  def evaluate_new_caps_distances(thread_num=200)
+    caps_array = NewCap.all(:seq_id => self.seq_id).to_a
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+        while caps_array.length > 0 do
+          cap = caps_array.pop
+          cap.eval_res_distances
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
 
+  # new_caps_count
+  # returns the number of caps records
+  #
+  def new_caps_count
+    NewCap.all(:seq_id => self.seq_id).count
+  end
+  
+  # new_caps_count_gt_twenty
+  # returns the number of caps records that have pairs further than twenty amino acids away
+  #
+  def new_caps_count_gt_twenty
+    NewCap.all(:seq_id => self.seq_id, :greater_than_twenty_away => true).count
+  end
+
+
+  # new_caps_count_gt_50
+  # returns the number of caps records that have pairs further than 50 amino acids away
+  #
+  def new_caps_count_gt_50
+    NewCap.all(:seq_id => self.seq_id, :greater_than_50_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_100
+    NewCap.all(:seq_id => self.seq_id, :greater_than_100_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_200
+    NewCap.all(:seq_id => self.seq_id, :greater_than_200_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_300
+    NewCap.all(:seq_id => self.seq_id, :greater_than_300_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_400
+    NewCap.all(:seq_id => self.seq_id, :greater_than_400_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_500
+    NewCap.all(:seq_id => self.seq_id, :greater_than_500_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_600
+    NewCap.all(:seq_id => self.seq_id, :greater_than_600_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_700
+    NewCap.all(:seq_id => self.seq_id, :greater_than_700_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_800
+    NewCap.all(:seq_id => self.seq_id, :greater_than_800_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_900
+    NewCap.all(:seq_id => self.seq_id, :greater_than_900_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1000
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1000_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1100
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1100_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1200
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1200_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1300
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1300_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1400
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1400_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1500
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1500_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1600
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1600_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1700
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1700_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1800
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1800_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1900
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1900_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_2000
+    NewCap.all(:seq_id => self.seq_id, :greater_than_2000_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_2100
+    NewCap.all(:seq_id => self.seq_id, :greater_than_2100_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_2200
+    NewCap.all(:seq_id => self.seq_id, :greater_than_2200_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_2300
+    NewCap.all(:seq_id => self.seq_id, :greater_than_2300_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_2400
+    NewCap.all(:seq_id => self.seq_id, :greater_than_2400_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_2500
+    NewCap.all(:seq_id => self.seq_id, :greater_than_2500_away => true).count
+  end
 end
 
