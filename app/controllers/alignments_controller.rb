@@ -74,7 +74,10 @@ class AlignmentsController < ApplicationController
   def destroy
     @alignment = Alignment.get(params[:id])
     alignments = Alignment.all(:alignment_name => @alignment.alignment_name)
-    alignments.destroy
+    alignments.each do |a|
+      a.deleted_at = Time.now
+      a.save
+    end
 
     respond_to do |format|
       format.html { redirect_to(alignments_url) }
@@ -147,8 +150,12 @@ class AlignmentsController < ApplicationController
             seq = alignment.sequence
             seq.disorders.each do |disorder|
               temp_hash[disorder.disorder_type] = repository(:default).adapter.select("SELECT COUNT (*) FROM disorder_values where disorder_id =#{disorder.id}")#disorder.disorder_values.count
+              temp_hash["#{disorder.disorder_type}_id"] =disorder.disorder_id
             end
             temp_hash[:name] =seq.abrev_name
+            temp_hash[:id] = seq.id
+            temp_hash[:type] = seq.seq_type
+            temp_hash[:align_id] = alignment.align_id
             @dis_array[alignment.align_order] = temp_hash
          end
         }
@@ -162,7 +169,8 @@ class AlignmentsController < ApplicationController
     thread_num=70
     @comp_array=[]
     alignment_array=[]
-    Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, :order => [:align_order.asc]).each do |alignment|
+    @alignment_name = Alignment.get(params[:id]).alignment_name
+    Alignment.all(:alignment_name => @alignment_name, :order => [:align_order.asc]).each do |alignment|
       alignment_array << alignment
     end
     thread_array=[]
@@ -181,11 +189,19 @@ class AlignmentsController < ApplicationController
             puts seq.abrev_name + ":conseq"
             temp_hash[:conseq] = repository(:default).adapter.select("SELECT COUNT (*) FROM conseqs where seq_id =#{seq.id}")#seq.conseqs.count
             temp_hash[:name] = seq.abrev_name
+            temp_hash[:id] = seq.seq_id
+            temp_hash[:pids] = PercentIdentity.all(:seq1_id => alignment.sequence.seq_id, :percent_id.gt => 19,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count
             @comp_array[alignment.align_order] = temp_hash
          end
         }
     end
     thread_array.map{|t| t.join}
+  end
+  
+  def calculate_pids
+    alignment = Alignment.get(params[:id])
+    alignment.run_align_assess
+    redirect_to(percent_identities_alignment_path(params[:id]))
   end
   
   def pre_process_fasta_file
@@ -316,20 +332,22 @@ class AlignmentsController < ApplicationController
     directory = "temp_data"
     new_file = File.join(directory,name)
     File.open(new_file, "wb"){ |f| f.write(params['datafile'].read)}
-    sequence_list = Sequence.create_sequences_from_fasta(new_file, current_user.id)
-    sequences = Sequence.all(:seq_id => sequence_list.map{|s| s.seq_id})
-    sequences = []
+    #sequence_list = Sequence.create_sequences_from_fasta(new_file, current_user.id)
+    #sequences = Sequence.all(:seq_id => sequence_list.map{|s| s.seq_id})
+    #sequences = []
     file = File.new(new_file, 'r')
     ff = Bio::FlatFile.new(Bio::FastaFormat, file)
     order_count = 0
     ff.each_entry do |f|
       puts f.definition
       seq = Sequence.create_sequence_from_bioruby_fasta_entry(f, params[:seq_type],current_user.id)
-      alignment = Alignment.create(:seq_id => seq.seq_id,
+      puts seq.abrev_name
+      alignment = Alignment.create(:seq_id => seq.id,
                         :alignment_name => params[:alignment_name],
                         :align_order => order_count,
                         :alignment_sequence =>f.naseq)
-      alignment_to_positions(alignment)   
+      #alignment_to_positions(alignment) 
+      alignment.alignment_to_positions  
       order_count += 1
       begin
         seq.run_and_store_disorder()
@@ -380,7 +398,8 @@ class AlignmentsController < ApplicationController
           logger.debug "VALID"
           logger.debug { @alignment.errors.inspect }
           @alignment.save
-          alignment_to_positions(@alignment)              
+          alignment_to_positions(@alignment)
+          @alignment.alignment_to_positions            
           #this is the sequene label
           abrev_name = line.gsub(">", "")
 
@@ -435,8 +454,7 @@ class AlignmentsController < ApplicationController
   end  
   
   
-  def calculate_intraresidue_consensus_threaded
-    thread_num = 65
+  def calculate_intraresidue_consensus_threaded(thread_num=65)
     alignment_array =[]
     Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, :order => [:align_order.asc]).each do |alignment|
       alignment_array << alignment
@@ -459,6 +477,15 @@ class AlignmentsController < ApplicationController
               #     count +=1
               #   end
               # end
+              #                 count +=1
+              #               elsif !IntraResidueContact.first(:seq_id => aaseq.seq_id, :second_residue=> aaseq.original_position).nil?
+              #                 count +=1
+              #               end
+              #               if !Conseq.first(:aasequence_id => aaseq.AAsequence_id).nil?
+              #                 if Conseq.first(:aasequence_id => aaseq.AAsequence_id).color < 4
+              #                   count +=1
+              #                 end
+              #               end
               if !Xdet.first(:aasequence_id => aaseq.AAsequence_id).nil?
                 if Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation > 0.0 || Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation == -2
                   count +=1
@@ -485,7 +512,7 @@ class AlignmentsController < ApplicationController
     @pids = {}
     @alignments =  Alignment.all(:alignment_name => @align.alignment_name, :order=>[:align_order])
     @alignments.each do |alignment|
-      @pids[alignment.sequence.id] =  PercentIdentity.all(:seq1_id => alignment.sequence.id, :percent_id.gt => 25,:percent_id.lt => 90, :alignment_name => @align.alignment_name)
+      @pids[alignment.sequence.id] =  PercentIdentity.all(:seq1_id => alignment.sequence.id, :percent_id.gt => 19,:percent_id.lt => 100, :alignment_name => @align.alignment_name)
     end
   end
   
@@ -501,7 +528,7 @@ class AlignmentsController < ApplicationController
           while alignment_array.length > 0 do
             alignment = alignment_array.pop
             puts alignment.sequence.abrev_name + ":STARTED"
-            alignment.sequence.calculate_disorder_consensus()
+            alignment.sequence.calculate_disorder_consensus_threaded()
             puts alignment.sequence.abrev_name + ":DONE"
           end
         }
@@ -519,6 +546,102 @@ class AlignmentsController < ApplicationController
    #  end
   
    def display_disorder_annotated_alignment
+     thread_num = 65
+     @display_array = Array.new
+     @max_count = 0
+     @contact_consensus_array = Array.new
+     @seq_contact_count = Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name).count
+     longest_alignment = 0;
+     alignment_array = []
+     @alignment_name = Alignment.get(params[:id]).alignment_name
+     Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, 
+                                 :order => [:align_order.asc]).each do |alignment|
+      puts alignment.alignment_sequence.length
+      if alignment.alignment_sequence.length > longest_alignment
+        longest_alignment = alignment.alignment_sequence.length
+      end
+      alignment_array << alignment
+    end
+    for i in 0..longest_alignment
+      @contact_consensus_array[i] = Array.new(@seq_contact_count, 0)
+    end
+    #@contact_consensus_array = Array.new(longest_alignment, Array.new(@seq_contact_count,0))
+    puts @contact_consensus_array.length
+    puts "Into The Threads"
+     thread_array=[]
+      thread_num.times do |i|
+        thread_array[i] = Thread.new{
+          while alignment_array.length > 0 do
+            alignment = alignment_array.pop
+            display_hash = Hash.new
+            alignment_color_array = Array.new      
+            cur_position = 0   
+            AlignmentPosition.all(:alignment_id => alignment.align_id, 
+                         :order => [:alignment_position_id.asc]).each do |position|
+             if position.position == cur_position
+                amino_acid = AAsequence.first(:id => position.aasequence_id)
+                alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, 0)
+                if @contact_consensus_array[cur_position][alignment.align_order].nil?
+                  @contact_consensus_array[cur_position][alignment.align_order] = 0
+                end
+                if amino_acid.disorder_consensus >= 0.5
+                  @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
+                end
+             else
+                while position.position > cur_position
+                             alignment_color_array[cur_position] = "FFFFFF"
+                             cur_position += 1
+                end
+                amino_acid = AAsequence.first(:id => position.aasequence_id)
+                alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, 0)
+                if @contact_consensus_array[cur_position][alignment.align_order].nil?
+                   @contact_consensus_array[cur_position][alignment.align_order] = 0
+                end
+                if amino_acid.disorder_consensus >= 0.5
+                   @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
+                end
+              end
+              cur_position += 1
+              end                 
+              puts display_hash["name"] = Sequence.first(:seq_id => alignment.seq_id).abrev_name 
+              display_hash["alignment"] = alignment_color_array
+              @display_array[alignment.align_order] = display_hash
+            if @max_count < cur_position
+                   @max_count = cur_position
+            end
+          end
+        }
+     end
+     thread_array.map{|t| t.join}
+
+     @contact_consensus_array = @contact_consensus_array.map{|a| a.inject(0){|sum,item| sum + item}}
+     @cur_position = 0
+     @tick_counter = 0
+     @alignment_tick_array = Array.new
+     while @cur_position <= @max_count
+       @cur_position += 1
+       @tick_counter += 1
+       if @tick_counter != 25
+         @alignment_tick_array << "FFFFFF"
+       else
+         @alignment_tick_array << "000000"
+         @tick_counter = 0
+       end
+     end
+     @display_hash = Hash.new
+     @display_hash["name"] = ""
+     @display_hash["alignment"] = @alignment_tick_array  
+     @display_array << @display_hash
+     if params[:aa_length].nil?
+       @aa_length = 400
+     else
+       @aa_length = params[:aa_length].to_i
+     end
+     @ranges = (@max_count/@aa_length)
+
+   end 
+  
+   def download_disorder_alignment
      thread_num = 65
      @display_array = Array.new
      @max_count = 0
@@ -576,7 +699,7 @@ class AlignmentsController < ApplicationController
               end
               cur_position += 1
               end                 
-              puts display_hash["name"] = Sequence.first(:id => alignment.seq_id).abrev_name 
+              puts display_hash["name"] = Sequence.first(:seq_id => alignment.seq_id).abrev_name 
               display_hash["alignment"] = alignment_color_array
               @display_array[alignment.align_order] = display_hash
             if @max_count < cur_position
@@ -584,7 +707,7 @@ class AlignmentsController < ApplicationController
             end
           end
         }
-     end
+      end
      thread_array.map{|t| t.join}
 
      @contact_consensus_array = @contact_consensus_array.map{|a| a.inject(0){|sum,item| sum + item}}
@@ -611,8 +734,18 @@ class AlignmentsController < ApplicationController
        @aa_length = params[:aa_length].to_i
      end
      @ranges = (@max_count/@aa_length)
-
-   end 
+     csv_string = CSV.generate do |csv|
+       csv << ['position','disorder consensus'] 
+       @contact_consensus_array.length.times do |i| 
+         csv << [i.to_s ,  (@contact_consensus_array[i].to_f / @seq_contact_count).to_s]  
+       end
+     end
+     send_data csv_string, 
+     :type => 'text/csv; charset=iso-8859-1; header=present', 
+     :disposition => "attachment; filename=#{@alignment_name}_disorder_consensus.csv"	
+     flash[:notice] = "Export complete!" 
+   end
+     
   
   def display_annotated_alignment
     @display_array = Array.new
@@ -707,10 +840,10 @@ class AlignmentsController < ApplicationController
     @alignment_name = Alignment.get(params[:id]).alignment_name
     Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, 
                                 :order => [:align_order.asc]).each do |alignment|
-      if AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gt => 0.75).count > 0
+      if AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gte => 0.5).count > 0
         @seq_contact_count += 1
       end
-      puts Sequence.first(:seq_id => alignment.seq_id).abrev_name + ":" + AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gt => 0.75).count.to_s
+      puts Sequence.first(:seq_id => alignment.seq_id).abrev_name + ":" + AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gte => 0.5).count.to_s
       if alignment.alignment_sequence.length > longest_alignment
         longest_alignment = alignment.alignment_sequence.length
       end
@@ -734,9 +867,9 @@ class AlignmentsController < ApplicationController
                     :order => [:alignment_position_id.asc]).each do |position|
               if position.position == @cur_position
                 amino_acid = AAsequence.first(:id => position.aasequence_id)
-                cap_res = Caps.first(:aasequence_id => amino_acid.AAsequence_id)
+                cap_res = NewCap.first(:aasequence_id => amino_acid.AAsequence_id)
                 cap_color =0
-                if amino_acid.contact_consensus > 0.75 #@contact_consensus_array[@cur_position] > 1
+                if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
                   cap_color = 1
                 # @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
                 end
@@ -748,10 +881,10 @@ class AlignmentsController < ApplicationController
                 cur_position += 1
                end
                amino_acid = AAsequence.first(:id => position.aasequence_id)
-               cap_res = Caps.first(:aasequence_id => amino_acid.AAsequence_id)
+               cap_res = NewCap.first(:aasequence_id => amino_acid.id)
                 cap_color =0
                 cap_color =0
-                if amino_acid.contact_consensus > 0.75 #@contact_consensus_array[@cur_position] > 1
+                if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
                   cap_color = 1
                   # @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
                 end
@@ -799,8 +932,110 @@ class AlignmentsController < ApplicationController
       @seq_contact_count = alignment_count
     end
   end
-  
-  
+
+
+  def display_caps_annotated_alignment(thread_num=65)
+    @display_array = Array.new
+    @max_count = 0
+    @contact_consensus_array = Array.new
+    @seq_contact_count = 0
+    longest_alignment = 0
+    alignment_array = []
+    alignment_count = Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name).count
+    @alignment_name = Alignment.get(params[:id]).alignment_name
+    Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, 
+                                :order => [:align_order.asc]).each do |alignment|
+      if AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gte => 0.5).count > 0
+        @seq_contact_count += 1
+      end
+      puts Sequence.first(:seq_id => alignment.seq_id).abrev_name + ":" + AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gte => 0.5).count.to_s
+      if alignment.alignment_sequence.length > longest_alignment
+        longest_alignment = alignment.alignment_sequence.length
+      end
+      alignment_array << alignment
+    end
+    #@contact_consensus_array = Array.new(longest_alignment,0)
+    for i in 0..longest_alignment
+      @contact_consensus_array[i] = Array.new(alignment_count, 0)
+    end
+    puts @contact_consensus_array.length
+    puts "Into The Threads"
+     thread_array=[]
+      thread_num.times do |i|
+        thread_array[i] = Thread.new{
+          while alignment_array.length > 0 do
+            alignment = alignment_array.pop
+            display_hash = Hash.new
+            alignment_color_array = Array.new      
+            cur_position = 0   
+            AlignmentPosition.all(:alignment_id => alignment.align_id, 
+                    :order => [:alignment_position_id.asc]).each do |position|
+              if position.position == @cur_position
+                amino_acid = AAsequence.first(:id => position.aasequence_id)
+                cap_res = NewCap.first(:aasequence_id => amino_acid.AAsequence_id)
+                cap_color =0
+                if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
+                  cap_color = 1
+                end
+                @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + amino_acid.contact_consensus
+                alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, cap_color)
+              else
+               while position.position > cur_position
+                alignment_color_array[cur_position] = "FFFFFF"
+                cur_position += 1
+               end
+               amino_acid = AAsequence.first(:id => position.aasequence_id)
+               cap_res = NewCap.first(:aasequence_id => amino_acid.id)
+                cap_color =0
+                cap_color =0
+                if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
+                  cap_color = 1
+                end
+                @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + amino_acid.contact_consensus
+               alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, cap_color)           
+             end
+           cur_position += 1
+         end                 
+         puts display_hash["name"] = Sequence.first(:seq_id => alignment.seq_id).abrev_name 
+         display_hash["alignment"] = alignment_color_array
+         @display_array << display_hash
+         if @max_count < cur_position
+           @max_count = cur_position
+         end
+       end
+       }
+    end
+    #@max_count=longest_alignment
+    thread_array.map{|t| t.join}
+    @contact_consensus_array = @contact_consensus_array.map{|a| a.inject(0){|sum,item| sum + item}}
+    @cur_position = 0
+    @tick_counter = 0
+    @alignment_tick_array = Array.new
+    while @cur_position <= @max_count
+      @cur_position += 1
+      @tick_counter += 1
+      if @tick_counter != 25
+        @alignment_tick_array << "FFFFFF"
+      else
+        @alignment_tick_array << "000000"
+        @tick_counter = 0
+      end
+    end
+    @display_hash = Hash.new
+    @display_hash["name"] = ""
+    @display_hash["alignment"] = @alignment_tick_array  
+    @display_array << @display_hash
+    if params[:aa_length].nil?
+      @aa_length = 400
+    else
+      @aa_length = params[:aa_length].to_i
+    end
+    @ranges = (@max_count/@aa_length)
+    if @seq_contact_count == 0
+      @seq_contact_count = alignment_count
+    end
+  end
+   
   def display_xdet_annotated_alignment
      thread_num = 65
      @display_array = Array.new
@@ -1010,4 +1245,53 @@ class AlignmentsController < ApplicationController
       end
     end
   
+  def caps_report(thread_num=70)
+    @caps_array = []
+    alignment = Alignment.get(params[:id])
+    @alignment_name = alignment.alignment_name
+    seq_array = alignment.sequences.to_a
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+        while seq_array.length > 0 do
+          s = seq_array.pop
+          temp_hash = {}
+          temp_hash[:name] = s.abrev_name
+          temp_hash[:id] = s.seq_id
+          temp_hash[:caps_count] = s.new_caps_count
+          temp_hash["20"] = s.new_caps_count_gt_twenty
+          temp_hash["50"] = s.new_caps_count_gt_50
+          temp_hash["100"] = s.new_caps_count_gt_100
+          temp_hash["200"] = s.new_caps_count_gt_200
+          temp_hash["300"] = s.new_caps_count_gt_300
+          temp_hash["400"] = s.new_caps_count_gt_400
+          temp_hash["500"] = s.new_caps_count_gt_500
+          temp_hash["600"] = s.new_caps_count_gt_600
+          temp_hash["700"] = s.new_caps_count_gt_700
+          temp_hash["800"] = s.new_caps_count_gt_800
+          temp_hash["900"] = s.new_caps_count_gt_900
+          temp_hash["1000"] = s.new_caps_count_gt_1000
+          temp_hash["1100"] = s.new_caps_count_gt_1100
+          temp_hash["1200"] = s.new_caps_count_gt_1200
+          temp_hash["1300"] = s.new_caps_count_gt_1300
+          temp_hash["1400"] = s.new_caps_count_gt_1400
+          temp_hash["1500"] = s.new_caps_count_gt_1500
+          temp_hash["1600"] = s.new_caps_count_gt_1600
+          temp_hash["1700"] = s.new_caps_count_gt_1700
+          temp_hash["1800"] = s.new_caps_count_gt_1800
+          temp_hash["1900"] = s.new_caps_count_gt_1900
+          temp_hash["2000"] = s.new_caps_count_gt_2000
+          temp_hash["2100"] = s.new_caps_count_gt_2100
+          temp_hash["2200"] = s.new_caps_count_gt_2200
+          temp_hash["2300"] = s.new_caps_count_gt_2300
+          temp_hash["2400"] = s.new_caps_count_gt_2400
+          temp_hash["2500"] = s.new_caps_count_gt_2500
+          temp_hash[:pids] = PercentIdentity.all(:seq1_id => s.seq_id, :percent_id.gt => 19,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count
+          @caps_array << temp_hash
+        end
+      }
+    end
+    #@max_count=longest_alignment
+    thread_array.map{|t| t.join}
+  end
 end

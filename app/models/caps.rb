@@ -12,6 +12,6 @@ class Caps
   property :deleted_at, ParanoidDateTime
   
   # has n, :disorder_values
-  belongs_to :sequence, 'Sequence', :child_key =>[:seq_id]
+  belongs_to :sequence, 'Sequence', :child_key =>[:seq_id], :parent_key => [:seq_id]
   
 end

@@ -3,12 +3,14 @@
      $('#alignments').dataTable();
  } );
 </script>
-<h1>Listing alignment CICPs</h1>
+<h1>Listing alignment CICPs for <%= @alignment_name %></h1>
 
 <table border=1 id="alignments" style="width: 400px; height: 300px;">
   <thead>
   <tr>
     <th>Sequence</th>
+    <th>SeqID</th>
+    <th>PID</th>
     <th>intra-res contact</th>
     <th>conseq</th>
     <th>xdet</th>
@@ -21,6 +23,12 @@
     
     <td>
       <%= v[:name] %>
+    </td>
+    <td>
+      <%= v[:id] %>
+    </td>
+    <td>
+      <%= v[:pids] %>
     </td>
     <td>
       <%= v[:intra]%>

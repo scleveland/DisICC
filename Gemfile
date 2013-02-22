@@ -36,11 +36,13 @@ gem 'dm-observer',          DM_VERSION
 
 gem 'fastercsv'
 gem 'curb'  #using this for RONN
-gem 'bio'   #bioruby
+gem 'bio', '1.4.3' #bioruby
 
 gem 'dm-devise', '1.4.0'
 gem 'jquery-rails'
 gem 'web-app-theme', '0.6.2'
+
+gem 'gmail'
 group(:development, :test) do
 
   # Uncomment this if you want to use rspec for testing your application

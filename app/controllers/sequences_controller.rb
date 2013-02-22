@@ -96,7 +96,11 @@ class SequencesController < ApplicationController
       format.xml  { head :ok }
     end
   end
-  
+  def calculate_disorder_consensus
+    @sequence = Sequence.get(params[:id])#current_user.sequences.get(params[:id])
+    @sequence.calculate_disorder_consensus()#_threaded(300)
+    redirect_to disorder_consensus_sequence_path(@sequence.id)
+  end
   def disorder_consensus
     @sequence = Sequence.get(params[:id])#current_user.sequences.get(params[:id])
     respond_to do |format|

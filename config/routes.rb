@@ -7,6 +7,7 @@ Disicc::Application.routes.draw do
       get :run_disorder
       get :disorder_consensus
       get :download_disorder
+      get :calculate_disorder_consensus
     end
   end
   resources :a_asequencs
@@ -24,6 +25,10 @@ Disicc::Application.routes.draw do
       get :percent_identities
       get :compensatory_brief_report
       get :disorder_brief_report
+      get :run_disorder
+      get :calculate_pids
+      get :download_disorder_alignment
+      get :caps_report
     end
     collection do
       get :upload

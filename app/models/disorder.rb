@@ -7,8 +7,9 @@ class Disorder
   property :version, Integer, :required => false
   property :seq_id, Integer
   property :deleted_at, ParanoidDateTime
+  property :threshold, Float, :required => false
   
   alias :disorder_id :id
-  belongs_to :sequence, 'Sequence', :child_key =>[:seq_id]#, :parent_key=>[:seq_id]
+  belongs_to :sequence, 'Sequence', :child_key =>[:seq_id], :parent_key => [:seq_id]
   has n, :disorder_values, 'DisorderValue'
 end

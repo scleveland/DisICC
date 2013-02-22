@@ -3,7 +3,7 @@
 class Sequence 
   include DataMapper::Resource
   
-  property :id, Serial, :field=>'seq_id'
+  property :seq_id, Serial#, :field=>'seq_id'
   property :seq_name, String, :required => true, :length => 256
   property :sequence, Text, :required => true
   property :seq_type, String, :required => false
@@ -14,6 +14,8 @@ class Sequence
   property :owner, Integer, :required => true, :default => 1
   property :deleted_at, ParanoidDateTime
   
+ # alias :seq_id :id
+  alias :id :seq_id
   has n, :a_asequences, 'AAsequence', :child_key=>[:seq_id]
   has n, :users, :through =>Resource
   has n, :disorders, 'Disorder', :child_key=>[:seq_id]
@@ -29,6 +31,14 @@ class Sequence
     unless  u.sequences.first(:seq_id => self.seq_id)
       u.sequences << self
       u.save
+    end
+  end
+  
+  def clean_up_abrev
+    if (self.abrev_name.count "/") > 0
+      puts "yes"
+      self.abrev_name = self.abrev_name.split("/")[0]
+      self.save
     end
   end
   
@@ -56,12 +66,15 @@ class Sequence
   end
   
   def self.create_sequence_from_bioruby_fasta_entry(fasta_entry, seq_type, owner=1)
-    seq = self.create(:seq_name=>fasta_entry.definition, 
+    seq = self.new(:seq_name=>fasta_entry.definition, 
              :abrev_name=>fasta_entry.definition[0..3],
              :seq_type=>seq_type,
              :sequence => fasta_entry.naseq.gsub('-',''), 
-             :owner=>owner)
+             :owner=>owner,
+             )
+    seq.valid?
     puts seq.errors.inspect()
+    seq.save
     seq.generate_aasequences()
     seq
   end
@@ -120,7 +133,7 @@ class Sequence
   def generate_fasta_file_one_line
     filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+".fasta"
     f = File.new(filepath, "w+")
-    f.write(">"+self.abrev_name+"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n")
+    f.write(">"+self.abrev_name + "\n")#"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n")
     f.write(self.a_asequences(:order=>[:seq_id], :fields=>[:amino_acid]).map{|aa| aa.amino_acid}.join(''))
     f.close
     return filepath
@@ -133,6 +146,14 @@ class Sequence
     puts "Finsihed SVMCon for #{self.abrev_name}"
   end
   
+  def run_nncon(out_dir)
+    path = self.generate_fasta_file_one_line
+    puts "Starting NNCon #{self.abrev_name}"
+    puts "~/nncon1.0/bin/predict_ss_sa_cm.sh #{path} #{out_dir}"
+    system "~/nncon1.0/bin/predict_ss_sa_cm.sh #{path} #{out_dir}"
+    puts "Finsihed NNCon for #{self.abrev_name}"
+  end
+  
   def generate_fasta_string
     fasta_string = ">"+self.abrev_name+"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n"
     fasta_string = fasta_string + self.sequence + "\n"
@@ -141,6 +162,10 @@ class Sequence
   def generate_fasta_string_one_line
     fasta_string = ">"+self.abrev_name+"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n"
     fasta_string = fasta_string + self.a_asequences(:order=>[:seq_id], :fields=>[:amino_acid]).map{|aa| aa.amino_acid}.join('') + "\n"
+  end
+  
+  def sequence_one_line
+    fasta_string = self.a_asequences(:order=>[:seq_id], :fields=>[:amino_acid]).map{|aa| aa.amino_acid}.join('')
   end
   #### DISORDER ####
   
@@ -220,58 +245,73 @@ class Sequence
     end
   end
   
-  def calculate_disorder_consensus()#disorder_types)
-    dis_ids = self.disorders.map{|k| k.disorder_id}
-    puts dis_ids.join(',')
-    AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
-      dis_sum = 0
-      dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
-      dvs = dvals.map{|c| c.dvalue}
-      puts "DVals: " + dvs.join(',').to_s
-      dis_sum = dvs.inject{|sum,x| sum + x }
-      puts "Sum: " + dis_sum.to_s
-        # if disorder_types.include?("DisEMBL Hotloops")
-        #   dis_sum = dis_sum + 0.38 
-        #   dis_num = dis_ids.length
-        # end
-      #end
-      if dvals.count > 0
-        aa.disorder_consensus = dis_sum/dvals.count
-      else
-        aa.disorder_consensus = 0
-      end
-      puts "Consensus: "+aa.disorder_consensus.to_s
-      aa.save
-    end
-  end
+  #  def calculate_disorder_consensus()#disorder_types)
+  #   dis_ids = self.disorders.map{|k| k.disorder_id}
+  #   puts dis_ids.join(',')
+  #   AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
+  #     # dis_sum = 0
+  #     #       dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
+  #     #       dvs = dvals.map{|c| c.dvalue}
+  #     #       puts "DVals: " + dvs.join(',').to_s
+  #     #       dis_sum = dvs.inject{|sum,x| sum + x }
+  #     #       puts "Sum: " + dis_sum.to_s
+  #     #         # if disorder_types.include?("DisEMBL Hotloops")
+  #     #         #   dis_sum = dis_sum + 0.38 
+  #     #         #   dis_num = dis_ids.length
+  #     #         # end
+  #     #       #end
+  #     #       if dvals.count > 0
+  #     #         aa.disorder_consensus = dis_sum/dvals.count
+  #     #       else
+  #     #         aa.disorder_consensus = 0
+  #     #       end
+  #     aa.disorder_consensus = aa.disorder_values.avg(:dvalue)
+  #     puts "Consensus: "+aa.disorder_consensus.to_s
+  #     aa.save
+  #   end
+  # end
   
   def calculate_disorder_consensus_threaded(thread_num = 100)#disorder_types)
     aa_array =[]
     AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
       aa_array << aa
     end
-    @dis_ids = self.disorders.map{|k| k.disorder_id}
+    dis_ids = self.disorders.all(:disorder_type.not =>["DisEMBL Hotloops", "DisEMBL Coils"]).map{|k| k.disorder_id}
+    dis_hl = self.disorders.first(:disorder_type => "DisEMBL Hotloops")
+    dis_c = self.disorders.first(:disorder_type => "DisEMBL Coils")
     thread_array=[]
     thread_num.times do |i|
       thread_array[i] = Thread.new{
         while aa_array.length > 0 do
           aa = aa_array.pop
-          dis_sum = 0
-          dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
-          dvs = dvals.map{|c| c.dvalue}
-          puts "DVals: " + dvs.join(',').to_s
-          dis_sum = dvs.inject{|sum,x| sum + x }
-          puts "Sum: " + dis_sum.to_s
-          # if disorder_types.include?("DisEMBL Hotloops")
+          # dis_sum = 0
+          #           dvals = aa.disorder_values#DisorderValue.all(:aasequence_id => aa.id, :disorder_id=>dis_ids)
+          #           dvs = dvals.map{|c| c.dvalue > 0.5 ? 1 : 0 }
+          #           puts "DVals: " + dvs.join(',').to_s
+          #           dis_sum = dvs.inject{|sum,x| sum + x }
+          #           puts "Sum: " + dis_sum.to_s
+          #           # if disorder_types.include?("DisEMBL Hotloops")
           #   dis_sum = dis_sum + 0.38 
           #   dis_num = dis_ids.length
           # end
           #end
-          if dvals.count > 0
-            aa.disorder_consensus = dis_sum/dvals.count
-          else
-            aa.disorder_consensus = 0
+          #if dvals.count > 0
+          #  aa.disorder_consensus = dis_sum/dvals.count
+          #else
+          #  aa.disorder_consensus = 0
+          #end
+          aa.disorder_consensus = aa.disorder_values.all(:disorder_id => dis_ids, :dvalue.gte => 0.5 ).count#.avg(:dvalue)
+          if !dis_hl.nil?
+            if !aa.disorder_values.first(:disorder_id => dis_hl.id, :dvalue.gte => dis_hl.threshold).nil?
+            aa.disorder_consensus  = aa.disorder_consensus + 1
+            end
           end
+          if !dis_c.nil?
+            if !aa.disorder_values.first(:disorder_id => dis_c.id, :dvalue.gte => dis_c.threshold).nil?
+            aa.disorder_consensus  = aa.disorder_consensus + 1
+            end
+          end
+          aa.disorder_consensus = aa.disorder_consensus/self.disorders.count
           puts "Consensus: "+aa.disorder_consensus.to_s
           aa.save
         end
@@ -344,6 +384,27 @@ class Sequence
      end
    end
 
+   def generate_disopred
+     unless self.disorders.first(:disorder_type=>"Disopred")
+       url ="http://bioinf.cs.ucl.ac.uk/psipred/submit"
+       cur = Curl::Easy.new(url)
+       post_params= "email=x58z545@montana.edu&program_disopred=1&sequence=#{self.sequence_one_line}&subject=#{self.abrev_name}_Disopred|#{self.id}&falseRate=2&output=opnone  "
+       cur.http_post(post_params)
+       puts post_params
+       puts cur.body_str.to_s
+       s =cur.body_str.to_s.split('<pre>')
+       a = s[2].split("</pre>")
+       filepath= "temp_data/#{self.abrev_name}_Disopred"
+       f = File.new(filepath, "w+")
+       f.write(a[0].to_s)
+       f.close 
+       puts filepath
+       #self.store_ronn(filepath)
+     else
+       puts "Disopred Already Stored!***********************"
+     end
+    end
+
    def run_cornet
      unless !self.intra_residue_contacts.first.nil?
         puts "Submitting Cornet for: #{self.abrev_name}"
@@ -375,7 +436,7 @@ class Sequence
           url ="http://iris.rnet.missouri.edu/cgi-bin/dncon/submit_job.cgi"
           cur = Curl::Easy.new(url)
           #cur.multipart_form_post = true
-          post_params= "email_address=sean.b.cleveland@gmail.com&job_title=#{self.abrev_name}&protein_sequence=#{self.sequence}&to_take=l"
+          post_params= "email_address=disiccapp@gmail.com&job_title=#{self.abrev_name}&protein_sequence=#{self.sequence}&to_take=l"
           cur.http_post(post_params)
           puts post_params
           puts cur.body_str.to_s
@@ -458,11 +519,12 @@ class Sequence
        f = s[1].split(">smoothed scores</a>")
        a = f[0].to_s.gsub("\n<td><a href=",'').gsub('"','')
        file_url = "http://dis.embl.de/" + a
-
+       threshold = cur.body_str.to_s.split("<th>Thresholds used</th>\n<td>")[1].split("</td>")[0];
        file_cur= Curl::Easy.new(file_url)
        file_cur.http_post()
        filepath= "temp_data/#{self.abrev_name}_Disembl"
        f = File.new(filepath, "w+")
+       f.write(threshold + "\n")
        f.write(file_cur.body_str)
        f.close #this will be the smoothed scores file
        self.store_disembl(filepath)
@@ -483,7 +545,7 @@ class Sequence
      while (line = file.gets)
        #puts "#{counter}: #{line}"
        counter = counter + 1
-       if counter > 2
+       if counter > 3
          line_array = line.split('      ')
          if aa = AAsequence.first(:seq_id => self.id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
@@ -492,7 +554,17 @@ class Sequence
            DisorderValue.create(:disorder_id => dis_hl.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
          end
          aa_count +=1
+        elsif counter == 2
+          coil = line.split("rem")[0].gsub("coils=",'').to_f
+          loop = line.split("loops=")[1].to_f
+          dis_hl.threshold = loop
+          dis_coil.threshold = coil
+          dis_hl.save
+          dis_coil.save
+        
        end
+     
+      
      end
    end
 
@@ -687,6 +759,28 @@ class Sequence
    return jalview_string
   end
   
+  def generate_jalview_annotation_consensus()
+    File.open("#{self.abrev_name}_#{self.seq_type}.gff", 'w') do |f1| 
+      AAsequence.all(:seq_id => self.seq_id, :disorder_consensus.gte => 0.5).each do |aa|
+        if aa.disorder_consensus > 0.5 && aa.disorder_consensus < 0.6
+          feature_type = "low disorder"
+        elsif aa.disorder_consensus >= 0.6 && aa.disorder_consensus < 0.7
+          feature_type = "avg disorder"
+        elsif aa.disorder_consensus >= 0.7 && aa.disorder_consensus < 0.8
+          feature_type = "medium disorder"
+        elsif aa.disorder_consensus >= 0.8 && aa.disorder_consensus < 0.9
+          feature_type = "highly disordered"
+        elsif aa.disorder_consensus > 0.9
+          feature_type = "extremely disordered"
+        else
+          feature_type = "no disorder"
+        end
+        f1.puts "None #{self.abrev_name} -1 #{aa.original_position} #{aa.original_position} #{feature_type}"
+     end
+   end
+   #return jalview_string
+  end
+  
   def set_aasequence_defaults
       sql="UPDATE a_asequences SET disorder_consensus =0.0 WHERE seq_id=#{self.seq_id}"
       repository.adapter.execute(sql)
@@ -740,6 +834,216 @@ class Sequence
       end #end if
   end
   
+  #
+  def evaluate_new_caps_distances(thread_num=200)
+    caps_array = NewCap.all(:seq_id => self.seq_id).to_a
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+        while caps_array.length > 0 do
+          cap = caps_array.pop
+          cap.eval_res_distances
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
 
+  # new_caps_count
+  # returns the number of caps records
+  #
+  def new_caps_count
+    NewCap.all(:seq_id => self.seq_id).count
+  end
+  
+  # new_caps_count_gt_twenty
+  # returns the number of caps records that have pairs further than twenty amino acids away
+  #
+  def new_caps_count_gt_twenty
+    NewCap.all(:seq_id => self.seq_id, :greater_than_twenty_away => true).count
+  end
+
+
+  # new_caps_count_gt_50
+  # returns the number of caps records that have pairs further than 50 amino acids away
+  #
+  def new_caps_count_gt_50
+    NewCap.all(:seq_id => self.seq_id, :greater_than_50_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_100
+    NewCap.all(:seq_id => self.seq_id, :greater_than_100_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_200
+    NewCap.all(:seq_id => self.seq_id, :greater_than_200_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_300
+    NewCap.all(:seq_id => self.seq_id, :greater_than_300_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_400
+    NewCap.all(:seq_id => self.seq_id, :greater_than_400_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_500
+    NewCap.all(:seq_id => self.seq_id, :greater_than_500_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_600
+    NewCap.all(:seq_id => self.seq_id, :greater_than_600_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_700
+    NewCap.all(:seq_id => self.seq_id, :greater_than_700_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_800
+    NewCap.all(:seq_id => self.seq_id, :greater_than_800_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_900
+    NewCap.all(:seq_id => self.seq_id, :greater_than_900_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1000
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1000_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1100
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1100_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1200
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1200_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1300
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1300_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1400
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1400_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1500
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1500_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1600
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1600_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1700
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1700_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1800
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1800_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_1900
+    NewCap.all(:seq_id => self.seq_id, :greater_than_1900_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_2000
+    NewCap.all(:seq_id => self.seq_id, :greater_than_2000_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_2100
+    NewCap.all(:seq_id => self.seq_id, :greater_than_2100_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_2200
+    NewCap.all(:seq_id => self.seq_id, :greater_than_2200_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_2300
+    NewCap.all(:seq_id => self.seq_id, :greater_than_2300_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_2400
+    NewCap.all(:seq_id => self.seq_id, :greater_than_2400_away => true).count
+  end
+  
+  # new_caps_count_gt_100
+  # returns the number of caps records that have pairs further than 1000 amino acids away
+  #
+  def new_caps_count_gt_2500
+    NewCap.all(:seq_id => self.seq_id, :greater_than_2500_away => true).count
+  end
 end
 

@@ -1,0 +1,64 @@
+<script>
+ $(document).ready(function() {
+     $('#alignments').dataTable({"bPaginate": false});
+ } );
+</script>
+<h1>Listing alignment CICPs for <%= @alignment_name %></h1>
+
+<table border=1 id="alignments" style="width: 400px; height: 300px;">
+  <thead>
+  <tr>
+    <th>Sequence</th>
+    <th>SeqID</th>
+    <th>Caps Count</th>
+    <th>PID</th>
+    <th>20</th>
+    <th>50</th>
+    <% count = 100%>
+    <% while count < 2600 %>
+      <th>
+        <%= count.to_s %>
+      </th>
+      <%count = count + 100%>
+    <% end %>
+  </tr>
+  </thead>
+  <tbody>
+<% @caps_array.each do |v| %>
+  <tr>
+    
+    <td>
+      <%= v[:name] %>
+    </td>
+    <td>
+      <%= v[:id] %>
+    </td>
+    <td>
+      <%= v[:caps_count] %>
+    </td>
+    <td>
+      <%= v[:pids] %>
+    </td>
+    <td>
+      <%= v["20"] %>
+    </td>
+    <td>
+      <%= v["50"]%>
+    </td>
+    <% count = 100%>
+    <% while count < 2600 %>
+      <td>
+        <%= v[count.to_s] %>
+      </td>
+      <%count = count + 100%>
+    <% end %>
+  </tr>
+  
+<% end %>
+ </tbody>
+</table>
+
+<br />
+<br />
+<%= link_to 'Back', root_path %>
+<br /><br />

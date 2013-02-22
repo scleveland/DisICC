@@ -74,14 +74,20 @@ Total Number of Sequences with Disorder: <%=@seq_contact_count%>
   </tr>
   </thead>
   <tbody>
+  <%-disorder_count = 0 -%>
   <%-  @contact_consensus_array.length.times do |i| %>
     <tr>
       <td><%= i+1%></td>
       <td><%= @contact_consensus_array[i] %></td>
-      <% num =  @contact_consensus_array[i].to_f / @seq_contact_count #@display_array.length.to_f %>
+      <% num =  @contact_consensus_array[i].to_f / @seq_contact_count%> 
       <td><%= num %></td>
+      <%- if num >= 0.5 %>
+        <%- disorder_count = disorder_count + 1 -%>
+      <%- end -%>
     </tr>  
   <%- end %>
   </tbody>
 </table>  
+<br><br>
+Disorder percent: <%= disorder_count/@contact_consensus_array.length %> 
 <%= link_to 'Back', alignments_path %>
