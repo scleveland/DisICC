@@ -449,16 +449,16 @@ class AlignmentsController < ApplicationController
             puts alignment.sequence.abrev_name + ":STARTED"
             AAsequence.all(:seq_id => alignment.seq_id).each do |aaseq|
               count = 0
-              if !IntraResidueContact.first(:seq_id => aaseq.seq_id, :first_residue=> aaseq.original_position).nil?
-                count +=1
-              elsif !IntraResidueContact.first(:seq_id => aaseq.seq_id, :second_residue=> aaseq.original_position).nil?
-                count +=1
-              end
-              if !Conseq.first(:aasequence_id => aaseq.AAsequence_id).nil?
-                if Conseq.first(:aasequence_id => aaseq.AAsequence_id).color < 4
-                  count +=1
-                end
-              end
+              # if !IntraResidueContact.first(:seq_id => aaseq.seq_id, :first_residue=> aaseq.original_position).nil?
+              #   count +=1
+              # elsif !IntraResidueContact.first(:seq_id => aaseq.seq_id, :second_residue=> aaseq.original_position).nil?
+              #   count +=1
+              # end
+              # if !Conseq.first(:aasequence_id => aaseq.AAsequence_id).nil?
+              #   if Conseq.first(:aasequence_id => aaseq.AAsequence_id).color < 4
+              #     count +=1
+              #   end
+              # end
               if !Xdet.first(:aasequence_id => aaseq.AAsequence_id).nil?
                 if Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation > 0.0 || Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation == -2
                   count +=1
@@ -469,7 +469,7 @@ class AlignmentsController < ApplicationController
               elsif !NewCap.first(:seq_id=> aaseq.seq_id, :position_two => aaseq.original_position).nil?
                 count +=1
               end
-              aaseq.contact_consensus = count /4
+              aaseq.contact_consensus = count /2#4
               aaseq.save
             end  
             puts alignment.sequence.abrev_name + ":DONE"
@@ -799,5 +799,215 @@ class AlignmentsController < ApplicationController
       @seq_contact_count = alignment_count
     end
   end
+  
+  
+  def display_xdet_annotated_alignment
+     thread_num = 65
+     @display_array = Array.new
+     @max_count = 0
+     @contact_consensus_array = Array.new
+     @seq_contact_count = 0
+     longest_alignment = 0
+     alignment_array = []
+     alignment_count = Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name).count
+     @alignment_name = Alignment.get(params[:id]).alignment_name
+     Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, 
+                                 :order => [:align_order.asc]).each do |alignment|
+       if AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gte => 0.5).count > 0
+         @seq_contact_count += 1
+       end
+       puts Sequence.first(:seq_id => alignment.seq_id).abrev_name + ":" + AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gt => 0.75).count.to_s
+       if alignment.alignment_sequence.length > longest_alignment
+         longest_alignment = alignment.alignment_sequence.length
+       end
+       alignment_array << alignment
+     end
+     #@contact_consensus_array = Array.new(longest_alignment,0)
+     for i in 0..longest_alignment
+       @contact_consensus_array[i] = Array.new(alignment_count, 0)
+     end
+     puts @contact_consensus_array.length
+     puts "Into The Threads"
+      thread_array=[]
+       thread_num.times do |i|
+         thread_array[i] = Thread.new{
+           while alignment_array.length > 0 do
+             alignment = alignment_array.pop
+             display_hash = Hash.new
+             alignment_color_array = Array.new      
+             cur_position = 0   
+             AlignmentPosition.all(:alignment_id => alignment.align_id, 
+                     :order => [:alignment_position_id.asc]).each do |position|
+               if position.position == @cur_position
+                 amino_acid = AAsequence.first(:id => position.aasequence_id)
+                 cap_res = Caps.first(:aasequence_id => amino_acid.AAsequence_id)
+                 cap_color =0
+                 if !amino_acid.xdet.nil?  #&& (amino_acid.xdet.correlation > 0.0 || amino_acid.xdet.correlation == -2) #@contact_consensus_array[@cur_position] > 1
+                   cap_color = 1
+                 # @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
+                 end
+                 @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + cap_color
+                 alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, cap_color)
+               else
+                while position.position > cur_position
+                 alignment_color_array[cur_position] = "FFFFFF"
+                 cur_position += 1
+                end
+                amino_acid = AAsequence.first(:id => position.aasequence_id)
+                cap_res = Caps.first(:aasequence_id => amino_acid.AAsequence_id)
+                 cap_color =0
+                 cap_color =0
+                 if !amino_acid.xdet.nil? # && (amino_acid.xdet.correlation > 0.0 || amino_acid.xdet.correlation == -2)#@contact_consensus_array[@cur_position] > 1
+                   cap_color = 1
+                   # @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
+                 end
+                 @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + cap_color
+                alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, cap_color)           
+              end
+            cur_position += 1
+          end                 
+          puts display_hash["name"] = Sequence.first(:seq_id => alignment.seq_id).abrev_name 
+          display_hash["alignment"] = alignment_color_array
+          @display_array << display_hash
+          if @max_count < cur_position
+            @max_count = cur_position
+          end
+        end
+        }
+     end
+     #@max_count=longest_alignment
+     thread_array.map{|t| t.join}
+     @contact_consensus_array = @contact_consensus_array.map{|a| a.inject(0){|sum,item| sum + item}}
+     @cur_position = 0
+     @tick_counter = 0
+     @alignment_tick_array = Array.new
+     while @cur_position <= @max_count
+       @cur_position += 1
+       @tick_counter += 1
+       if @tick_counter != 25
+         @alignment_tick_array << "FFFFFF"
+       else
+         @alignment_tick_array << "000000"
+         @tick_counter = 0
+       end
+     end
+     @display_hash = Hash.new
+     @display_hash["name"] = ""
+     @display_hash["alignment"] = @alignment_tick_array  
+     @display_array << @display_hash
+     if params[:aa_length].nil?
+       @aa_length = 400
+     else
+       @aa_length = params[:aa_length].to_i
+     end
+     @ranges = (@max_count/@aa_length)
+     if @seq_contact_count == 0
+       @seq_contact_count = alignment_count
+     end
+   end
+   
+   def display_caps_annotated_alignment
+      thread_num = 65
+      @display_array = Array.new
+      @max_count = 0
+      @contact_consensus_array = Array.new
+      @seq_contact_count = 0
+      longest_alignment = 0
+      alignment_array = []
+      alignment_count = Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name).count
+      @alignment_name = Alignment.get(params[:id]).alignment_name
+      Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, 
+                                  :order => [:align_order.asc]).each do |alignment|
+        if AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gte => 0.5).count > 0
+          @seq_contact_count += 1
+        end
+        puts Sequence.first(:seq_id => alignment.seq_id).abrev_name + ":" + AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gt => 0.75).count.to_s
+        if alignment.alignment_sequence.length > longest_alignment
+          longest_alignment = alignment.alignment_sequence.length
+        end
+        alignment_array << alignment
+      end
+      #@contact_consensus_array = Array.new(longest_alignment,0)
+      for i in 0..longest_alignment
+        @contact_consensus_array[i] = Array.new(alignment_count, 0)
+      end
+      puts @contact_consensus_array.length
+      puts "Into The Threads"
+       thread_array=[]
+        thread_num.times do |i|
+          thread_array[i] = Thread.new{
+            while alignment_array.length > 0 do
+              alignment = alignment_array.pop
+              display_hash = Hash.new
+              alignment_color_array = Array.new      
+              cur_position = 0   
+              AlignmentPosition.all(:alignment_id => alignment.align_id, 
+                      :order => [:alignment_position_id.asc]).each do |position|
+                if position.position == @cur_position
+                  amino_acid = AAsequence.first(:id => position.aasequence_id)
+                  cap_res = Caps.first(:aasequence_id => amino_acid.AAsequence_id)
+                  cap_color =0
+                  if !NewCap.first(:seq_id=> amino_acid.seq_id, :position_one => amino_acid.original_position).nil? || !NewCap.first(:seq_id=> amino_acid.seq_id, :position_two => amino_acid.original_position).nil?
+                    cap_color = 1
+                  end
+
+                  @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + cap_color
+                  alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, cap_color)
+                else
+                 while position.position > cur_position
+                  alignment_color_array[cur_position] = "FFFFFF"
+                  cur_position += 1
+                 end
+                 amino_acid = AAsequence.first(:id => position.aasequence_id)
+                 cap_res = Caps.first(:aasequence_id => amino_acid.AAsequence_id)
+                  cap_color =0
+                  cap_color =0
+                  if !NewCap.first(:seq_id=> amino_acid.seq_id, :position_one => amino_acid.original_position).nil? || !NewCap.first(:seq_id=> amino_acid.seq_id, :position_two => amino_acid.original_position).nil?
+                    cap_color = 1
+                  end
+                  @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + cap_color
+                 alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, cap_color)           
+               end
+             cur_position += 1
+           end                 
+           puts display_hash["name"] = Sequence.first(:seq_id => alignment.seq_id).abrev_name 
+           display_hash["alignment"] = alignment_color_array
+           @display_array << display_hash
+           if @max_count < cur_position
+             @max_count = cur_position
+           end
+         end
+         }
+      end
+      #@max_count=longest_alignment
+      thread_array.map{|t| t.join}
+      @contact_consensus_array = @contact_consensus_array.map{|a| a.inject(0){|sum,item| sum + item}}
+      @cur_position = 0
+      @tick_counter = 0
+      @alignment_tick_array = Array.new
+      while @cur_position <= @max_count
+        @cur_position += 1
+        @tick_counter += 1
+        if @tick_counter != 25
+          @alignment_tick_array << "FFFFFF"
+        else
+          @alignment_tick_array << "000000"
+          @tick_counter = 0
+        end
+      end
+      @display_hash = Hash.new
+      @display_hash["name"] = ""
+      @display_hash["alignment"] = @alignment_tick_array  
+      @display_array << @display_hash
+      if params[:aa_length].nil?
+        @aa_length = 400
+      else
+        @aa_length = params[:aa_length].to_i
+      end
+      @ranges = (@max_count/@aa_length)
+      if @seq_contact_count == 0
+        @seq_contact_count = alignment_count
+      end
+    end
   
 end
