@@ -100,7 +100,7 @@ class Alignment
   def run_consensus_disorder
     self.sequences.each do |sequence|
         sequence.run_and_store_disorder()
-        sequence.calculate_disorder_consensus()
+        sequence.calculate_disorder_consensus_threaded(300)
     end
   end
   

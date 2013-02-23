@@ -585,6 +585,9 @@ class AlignmentsController < ApplicationController
                 end
                 amino_acid = AAsequence.first(:id => position.aasequence_id)
                 alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, 0)
+                if @contact_consensus_array[cur_position].nil?
+                  puts "OH no " + alignment.sequence.abrev_name
+                end
                 if @contact_consensus_array[cur_position][alignment.align_order].nil?
                    @contact_consensus_array[cur_position][alignment.align_order] = 0
                 end
@@ -631,6 +634,104 @@ class AlignmentsController < ApplicationController
      @ranges = (@max_count/@aa_length)
 
    end 
+   
+   def display_cicp_annotated_alignment
+     thread_num = 65
+     @display_array = Array.new
+     @max_count = 0
+     @contact_consensus_array = Array.new
+     @seq_contact_count = Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name).count
+     longest_alignment = 0;
+     alignment_array = []
+     @alignment_name = Alignment.get(params[:id]).alignment_name
+     Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, 
+                                 :order => [:align_order.asc]).each do |alignment|
+      puts alignment.alignment_sequence.length
+      if alignment.alignment_sequence.length > longest_alignment
+        longest_alignment = alignment.alignment_sequence.length
+      end
+      alignment_array << alignment
+    end
+    for i in 0..longest_alignment
+      @contact_consensus_array[i] = Array.new(@seq_contact_count, 0)
+    end
+    #@contact_consensus_array = Array.new(longest_alignment, Array.new(@seq_contact_count,0))
+    puts @contact_consensus_array.length
+    puts "Into The Threads"
+     thread_array=[]
+      thread_num.times do |i|
+        thread_array[i] = Thread.new{
+          while alignment_array.length > 0 do
+            alignment = alignment_array.pop
+            display_hash = Hash.new
+            alignment_color_array = Array.new      
+            cur_position = 0   
+            AlignmentPosition.all(:alignment_id => alignment.align_id, 
+                         :order => [:alignment_position_id.asc]).each do |position|
+             if position.position == cur_position
+                amino_acid = AAsequence.first(:id => position.aasequence_id)
+                alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, amino_acid.contact_consensus)
+                if @contact_consensus_array[cur_position][alignment.align_order].nil?
+                  @contact_consensus_array[cur_position][alignment.align_order] = 0
+                end
+                if amino_acid.contact_consensus >= 0.5
+                  @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
+                end
+             else
+                while position.position > cur_position
+                             alignment_color_array[cur_position] = "FFFFFF"
+                             cur_position += 1
+                end
+                amino_acid = AAsequence.first(:id => position.aasequence_id)
+                alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, amino_acid.contact_consensus)
+                if @contact_consensus_array[cur_position][alignment.align_order].nil?
+                   @contact_consensus_array[cur_position][alignment.align_order] = 0
+                end
+                if amino_acid.contact_consensus >= 0.5
+                   @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
+                end
+              end
+              cur_position += 1
+              end                 
+              puts display_hash["name"] = Sequence.first(:seq_id => alignment.seq_id).abrev_name 
+              display_hash["alignment"] = alignment_color_array
+              @display_array[alignment.align_order] = display_hash
+            if @max_count < cur_position
+                   @max_count = cur_position
+            end
+          end
+        }
+     end
+     thread_array.map{|t| t.join}
+
+     @contact_consensus_array = @contact_consensus_array.map{|a| a.inject(0){|sum,item| sum + item}}
+     @cur_position = 0
+     @tick_counter = 0
+     @alignment_tick_array = Array.new
+     while @cur_position <= @max_count
+       @cur_position += 1
+       @tick_counter += 1
+       if @tick_counter != 25
+         @alignment_tick_array << "FFFFFF"
+       else
+         @alignment_tick_array << "000000"
+         @tick_counter = 0
+       end
+     end
+     @display_hash = Hash.new
+     @display_hash["name"] = ""
+     @display_hash["alignment"] = @alignment_tick_array  
+     @display_array << @display_hash
+     if params[:aa_length].nil?
+       @aa_length = 400
+     else
+       @aa_length = params[:aa_length].to_i
+     end
+     @ranges = (@max_count/@aa_length)
+
+   end 
+
+   
   
    def download_disorder_alignment
      thread_num = 65
@@ -856,31 +957,42 @@ class AlignmentsController < ApplicationController
             cur_position = 0   
             AlignmentPosition.all(:alignment_id => alignment.align_id, 
                     :order => [:alignment_position_id.asc]).each do |position|
-              if position.position == @cur_position
+              if position.position == cur_position
                 amino_acid = AAsequence.first(:id => position.aasequence_id)
-                cap_res = NewCap.first(:aasequence_id => amino_acid.AAsequence_id)
+                #cap_res = NewCap.first(:aasequence_id => amino_acid.AAsequence_id)
                 cap_color =0
-                if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
+                # if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
+                #                   cap_color = 1
+                #                 # @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
+                #                 end
+                #                 @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + amino_acid.contact_consensus
+                #                 alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, cap_color)
+                #                 
+                if !amino_acid.nil? && amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
                   cap_color = 1
-                # @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
+                  @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + amino_acid.contact_consensus
+                 alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, cap_color)
+                  # @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
+                else
+                  puts "Something Failed: " + position.alignment_position_id.to_s + " | position: " + position.position.to_s + " | aaseq_id: " + position.aasequence_id.to_s
                 end
-                @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + amino_acid.contact_consensus
-                alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, cap_color)
               else
                while position.position > cur_position
                 alignment_color_array[cur_position] = "FFFFFF"
                 cur_position += 1
                end
                amino_acid = AAsequence.first(:id => position.aasequence_id)
-               cap_res = NewCap.first(:aasequence_id => amino_acid.id)
+               #cap_res = NewCap.first(:aasequence_id => amino_acid.id)
                 cap_color =0
                 cap_color =0
-                if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
+                if !amino_acid.nil? && amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
                   cap_color = 1
+                  @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + amino_acid.contact_consensus
+                 alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, cap_color)
                   # @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
-                end
-                @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + amino_acid.contact_consensus
-               alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, cap_color)           
+                else
+                  puts "Something Failed: #{position.alignment_position_id.to_s} | position: #{position.position.to_s} | aaseq_id: #{position.aasequence_id.to_s}"
+                end  
              end
            cur_position += 1
          end                 
@@ -963,7 +1075,7 @@ class AlignmentsController < ApplicationController
                     :order => [:alignment_position_id.asc]).each do |position|
               if position.position == @cur_position
                 amino_acid = AAsequence.first(:id => position.aasequence_id)
-                cap_res = NewCap.first(:aasequence_id => amino_acid.AAsequence_id)
+                #cap_res = NewCap.first(:aasequence_id => amino_acid.AAsequence_id)
                 cap_color =0
                 if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
                   cap_color = 1
@@ -976,7 +1088,7 @@ class AlignmentsController < ApplicationController
                 cur_position += 1
                end
                amino_acid = AAsequence.first(:id => position.aasequence_id)
-               cap_res = NewCap.first(:aasequence_id => amino_acid.id)
+               #cap_res = NewCap.first(:aasequence_id => amino_acid.id)
                 cap_color =0
                 cap_color =0
                 if amino_acid.contact_consensus >= 0.5 #@contact_consensus_array[@cur_position] > 1
