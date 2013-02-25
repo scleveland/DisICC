@@ -10,6 +10,8 @@
   <tr>
     <th>Sequence</th>
     <th>SeqID</th>
+    <th>AA Count</th>
+    <th>Seq Length</th>
     <th>PID</th>
     <th>intra-res contact</th>
     <th>conseq</th>
@@ -27,6 +29,12 @@
     </td>
     <td>
       <%= v[:id] %>
+    </td>
+    <td>
+      <%= v[:aa_count] %>
+    </td>
+    <td>
+      <%= v[:seq_length] %>
     </td>
     <td>
       <%= v[:pids] %>
