@@ -1,0 +1,124 @@
+<p id="notice"><%= notice %></p>
+<h3>
+<%=@alignment_name%>
+</h3>
+<script>
+ $(document).ready(function() {
+     $('#disorder').dataTable();
+     <%count=0%>
+     var plot1 = $.jqplot ('chart', [<%=@contact_consensus_array.map{|dv| count+=1;[count, dv.to_f/@seq_contact_count]}%>],{
+        title:'<%=@alignment_name%> Alignment Consensus Disorder Prediction',
+        axesDefaults: {
+          labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+        },
+        axes: {
+          xaxis: {
+            label: "Amino Acid Position",
+            pad: 0
+          },
+          yaxis: {
+            label: "Disorder"
+          }
+       }   ,
+      highlighter: {
+        show: true,
+        sizeAdjust: 7.5
+      },
+      cursor: {
+        show: false
+      }
+      });
+      <%count=0%>
+      var plot2 = $.jqplot ('cicp_chart', [<%=@cicp_array.map{|dv| count+=1;[count, dv.to_f/@cicp_contact_count]}%>],{
+          title:'<%=@alignment_name%> Alignment Consensus CICP Prediction',
+          axesDefaults: {
+            labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+          },
+          axes: {
+            xaxis: {
+              label: "Amino Acid Position",
+              pad: 0
+            },
+            yaxis: {
+              label: "CICP"
+            }
+         }   ,
+        highlighter: {
+          show: true,
+          sizeAdjust: 7.5
+        },
+        cursor: {
+          show: false
+        }
+        });
+      
+      
+ } );
+ 
+</script>
+<br>
+<br>
+<% (0..@ranges).each do |i| %>
+  <table>
+    <%- @display_array.each do |seq| %>
+      <tr>
+        <td><%= seq["name"] %></td>
+        <%- #seq["alignment"].each do |residue| %>
+        <%- ((i*@aa_length)..(i*@aa_length+@aa_length-1)).each do |r|  %>
+          <% if seq["alignment"].length > r %>
+            <td align = "center" bgcolor = #<%= seq["alignment"][r]%>>&nbsp</td>
+          <%-end%>
+        <%- end %>
+      </tr>
+    <%- end %>
+    <!--<tr>
+     <td>"Contact Consensus"</td>
+     <%-  @contact_consensus_array.each do |con| %>
+       <td><%=con%></td>
+     <%- end %>
+    </tr>--!>
+  </table>
+  <br>
+  <br>
+  <br>
+  <br>
+<% end %>
+<br>
+<div id="chart"></div>
+<br>
+<br>
+<br>
+<div id="cicp_chart"></div>
+<br>
+Total Number of Sequences in Alignment: <%=@display_array.length-1%>
+<br>
+Total Number of Sequences with Disorder: <%=@seq_contact_count%>
+<br>
+Total Number of Sequences with Disorder: <%=@cicp_contact_count%>
+<br><br>
+<table id='disorder'>
+  <thead>
+  <tr>
+    <th>Position</th>
+    <th>Number of Residues Disordered</th>
+    <th>Disorder Consensus from Alignment</th>
+  </tr>
+  </thead>
+  <tbody>
+  <%-disorder_count = 0 -%>
+  <%-  @contact_consensus_array.length.times do |i| %>
+    <tr>
+      <td><%= i+1%></td>
+      <td><%= @contact_consensus_array[i] %></td>
+      <% num =  @contact_consensus_array[i].to_f / @seq_contact_count%> 
+      <td><%= num %></td>
+      <%- if num >= 0.5 %>
+        <%- disorder_count = disorder_count + 1 -%>
+      <%- end -%>
+    </tr>  
+  <%- end %>
+  </tbody>
+</table>  
+<br><br>
+Disorder percent: <%= disorder_count/@contact_consensus_array.length %> 
+<%= link_to 'Back', alignments_path %>
