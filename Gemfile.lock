@@ -143,6 +143,8 @@ GEM
     rdoc (3.12)
       json (~> 1.4)
     require_all (1.2.1)
+    rest-client (1.6.7)
+      mime-types (>= 1.16)
     stringex (1.1.0)
     sugar-high (0.2.12)
       mocha (~> 0.9.8)
@@ -182,4 +184,5 @@ DEPENDENCIES
   jquery-rails
   rails (~> 3.0.1)
   railties (~> 3.0.1)
+  rest-client
   web-app-theme (= 0.6.2)

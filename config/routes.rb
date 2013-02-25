@@ -28,6 +28,7 @@ Disicc::Application.routes.draw do
       get :download_disorder_alignment
       get :caps_report
       get :display_cicp_annotated_alignment
+      get :display_disorder_and_cicp_annotated_alignment
     end
     collection do
       get :upload

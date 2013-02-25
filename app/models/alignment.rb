@@ -175,8 +175,10 @@ class Alignment
     system "./lib/comp_apps/caps/caps -F temp_data/#{self.alignment_name} --intra"
   end
   
-  def run_conseq
-    self.run_align_assess
+  def run_conseq(run_align_assess=true)
+    if run_align_assess
+      self.run_align_assess
+    end
      Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
      alignments = Alignment.all(:alignment_name => self.alignment_name)
      longest_alignment_length=0
@@ -185,21 +187,34 @@ class Alignment
           longest_alignment_length = alignment.alignment_sequence.length
        end
      end
+     
      alignments.each do |alignment|
-       if PercentIdentity.all(:seq1_id => alignment.sequence.id, :percent_id.gt => 25,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count > 9
-         
-         Dir.mkdir("temp_data/#{self.alignment_name}_#{alignment.seq_id}") unless File.directory?("temp_data/#{self.alignment_name}_#{alignment.seq_id}")
-         alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}_#{alignment.seq_id}", longest_alignment_length)
+       if PercentIdentity.all(:seq1_id => alignment.sequence.id, :percent_id.gte => 19,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count > 9
+         Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
+         alignment.generate_pid_fasta_file_for_inter("temp_data/#{self.alignment_name}", longest_alignment_length)
          #unless !self.conseq.first.nil?
            puts "Submitting Conseq for: #{alignment.sequence.abrev_name}"
            url ="http://conseq.tau.ac.il/cgi-bin/conseq_qsub.cgi"
            cur = Curl::Easy.new(url)
            cur.multipart_form_post = true
-           post_params= "ALGORITHM=Bayes&email_address=sean.b.cleveland@gmail.com&job_title=#{alignment.sequence.abrev_name}&send_user_mail=yes"
-           cur.http_post(Curl::PostField.file('msa_FILE','temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta'),post_params)
+           post_params= "ALGORITHM=Bayes&email_address=sean.b.cleveland@gmail.com&msa_SEQNAME=#{alignment.sequence.abrev_name}&send_user_mail=yes"
+           #cur.http_post(Curl::PostField.file('msa_FILE','temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta'),post_params)
+           myfile = File.open("temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta", 'rb')
+           # RestClient.post(url, :msa_FILE=>myfile, :ALGORITHM=>"Bayes",:email_address=>"sean.b.cleveland@gmail.com", :msa_SEQNAME=>alignment.sequence.abrev_name, :send_user_mail=>"yes"){ |response, request, result, &block|
+           #   if [301, 302, 307].include? response.code
+           #     myfile.close
+           #     response.follow_redirection(request, result, &block)
+           #   else
+           #     myfile.close
+           #     response.return!(request, result, &block)
+           #   end
+           # }
+           system("curl -i -F ALGORITHM=Bayes -F email_address=sean.b.cleveland@gmail.com -F msa_SEQNAME=#{alignment.sequence.abrev_name} -F send_user_mail=yes -F filedata=@temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta http://conseq.tau.ac.il/cgi-bin/conseq_qsub.cgi")
            #cur.http_post(post_params)
-           puts post_params
-           puts cur.body_str.to_s
+           #puts post_params
+           #puts cur.body_str.to_s
+           #puts response.to_str
+           break
          #end
        end
      end
@@ -216,7 +231,9 @@ class Alignment
        thread_array[i] = Thread.new{
          while alignment_array.length > 0 do
            alignment= alignment_array.pop
-           alignment.sequence.run_svmcon
+           if PercentIdentity.all(:seq1_id => alignment.sequence.seq_id, :percent_id.gte => 19,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count >= 10
+             alignment.sequence.run_svmcon
+           end
          end
       }
     end
@@ -228,7 +245,7 @@ class Alignment
      alignments = Alignment.all(:alignment_name => self.alignment_name)
       alignment_array = []
       alignments.each do |alignment|
-        if PercentIdentity.all(:seq1_id => alignment.sequence.seq_id, :percent_id.gt => 25,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count >= 10
+        if PercentIdentity.all(:seq1_id => alignment.sequence.seq_id, :percent_id.gte => 19,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count >= 10
           alignment_array << alignment
         end
       end
@@ -601,7 +618,7 @@ class Alignment
    def generate_pid_fasta_file_for_inter(dir="temp_data", longest_alignment_length=0)
      fasta_string=""
      seq = Sequence.get(self.seq_id)
-     pids = PercentIdentity.all(:seq1_id => self.seq_id, :percent_id.gte => 20, :order =>[:percent_id.desc],:unique=>true)
+     pids = PercentIdentity.all(:seq1_id => self.seq_id, :percent_id.gte => 19, :order =>[:percent_id.desc],:unique=>true)
      fasta_string= Alignment.first(:alignment_name => self.alignment_name, :seq_id=>self.seq_id).fasta_alignment_string_inter("",longest_alignment_length)
      puts seq.abrev_name+":"+pids.count.to_s
      puts pids.map{|p| p.seq2_sequence.seq_name}.join(',')
