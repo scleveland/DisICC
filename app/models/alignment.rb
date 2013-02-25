@@ -220,7 +220,7 @@ class Alignment
      end
   end
   
-  def run_svmcon_threaded(thread_num = 4)
+  def run_svmcon_threaded(thread_num = 4, create_fasta=true)
     alignments = Alignment.all(:alignment_name => self.alignment_name)
      alignment_array = []
      alignments.each do |alignment|
@@ -804,6 +804,39 @@ class Alignment
       end #end if
     end #end sequences.each
   end
+
+  def generate_aasequences(thread_num=65)
+    seq_array=[]
+    self.sequences.each do |seq|
+      seq_array << seq
+    end
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+         while seq_array.length > 0 do
+            seq = seq_array.pop
+            puts seq.abrev_name
+            seq.generate_aasequences
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
+
+  def delete_caps
+    self.sequences.each do |seq|
+      puts seq.abrev_name
+      NewCap.all(:seq_id => seq.seq_id).destroy!
+    end
+  end
+
+  def delete_xdet
+    self.sequences.each do |seq|
+      puts seq.abrev_name
+      Xdet.all(:seq_id => seq.seq_id).destroy!
+    end
+  end
+
 
   def import_caps_threaded(thread_num=4)
     seq_array = []

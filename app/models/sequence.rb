@@ -80,6 +80,7 @@ class Sequence
   end
   
   def generate_aasequences
+    self.a_asequences.destroy!
     (0..self.sequence.length-1).each do |i|
       AAsequence.create(:seq_id=> self.seq_id,
                        :amino_acid=>self.sequence[i],
@@ -134,7 +135,8 @@ class Sequence
     filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+".fasta"
     f = File.new(filepath, "w+")
     f.write(">"+self.abrev_name + "\n")#"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n")
-    f.write(self.a_asequences(:order=>[:seq_id], :fields=>[:amino_acid]).map{|aa| aa.amino_acid}.join(''))
+    #f.write(self.a_asequences(:order=>[:seq_id], :fields=>[:amino_acid]).map{|aa| aa.amino_acid}.join(''))
+    f.write(self.sequence + "\n")
     f.close
     return filepath
   end
