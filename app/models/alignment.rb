@@ -557,7 +557,7 @@ class Alignment
     end
   end
   
-  def run_xdet_threaded
+  def run_xdet_threaded(thread_num=4)
     self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
     alignments = Alignment.all(:alignment_name => self.alignment_name)
