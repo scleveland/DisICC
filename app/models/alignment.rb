@@ -609,7 +609,7 @@ class Alignment
           alignment = alignment_array.pop
           #filename= alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}")
           #filename= alignment.generate_pid_fasta_file_for_inter("temp_data/#{self.alignment_name}")
-          filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta
+          filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta"
           system "./lib/comp_apps/XDet/xdet_linux32 #{filename} ~/Rails/DisICC/lib/comp_apps/XDet/Maxhom_McLachlan.metric >> #{filename}_xdet"
         end
       }
