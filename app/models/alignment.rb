@@ -89,8 +89,13 @@ class Alignment
   
   def sequences
     alignments = Alignment.all(:alignment_name => self.alignment_name, :order=>[:align_order])
-    seq_ids = alignments.map{|a| a.seq_id}
-    Sequence.all(:seq_id=>seq_ids)
+    #seq_ids = alignments.map{|a| a.seq_id}
+    #Sequence.all(:seq_id=>seq_ids)
+    seq_array = []
+    alignments.each do |a|
+      seq_array << a.sequence
+    end
+    seq_array
   end
   
   
@@ -108,9 +113,12 @@ class Alignment
   def run_align_assess
     filename = self.generate_fasta_alignment_file_for_all
     string = "./lib/AlignAssess_wShorterID #{filename} P"
+    self.sequences.each do |s|
+      PercentIdentity.all(:seq1_id=> s.seq_id, :alignment_name => self.alignment_name).destroy!
+    end
     seq_array = Array.new
     if system(string)
-      seq_id_array = self.sequences.map{|s| s.id}
+      seq_id_array = self.sequences.map{|s| s.seq_id}
       new_filename = filename + "_assess"
       f = File.new(new_filename, "r")
       flag = false
@@ -121,6 +129,7 @@ class Alignment
           if line == "\n"
             flag =false
           else
+            puts line
             seq_array << line.split("\t")
           end
         elsif line == "Pair-wise %ID over shorter sequence:\n"
@@ -132,11 +141,17 @@ class Alignment
       range = seq_array.length - 1
       #seq_array.each do |row|
       for row_num in 0..range
-        for i in 1..range#(row_num)          
-          PercentIdentity.first_or_create(:seq1_id=>seq_id_array[row_num],
-                                                    :seq2_id=>seq_id_array[i],
+        for i in 1..range+1#(row_num)      
+          if row_num != i-1    
+              PercentIdentity.first_or_create(:seq1_id=>seq_id_array[row_num],
+                                                    :seq2_id=>seq_id_array[i-1],
                                                     :alignment_name => self.alignment_name,
                                                     :percent_id=>seq_array[row_num][i])
+              PercentIdentity.first_or_create(:seq1_id=>seq_id_array[i-1],
+                                                    :seq2_id=>seq_id_array[row_num],
+                                                    :alignment_name => self.alignment_name,
+                                                    :percent_id=>seq_array[row_num][i])
+          end
           # print "[#{row_num}:#{i-1}=>#{row[i]}],"
         end
         #print "\n"
@@ -144,7 +159,7 @@ class Alignment
     end
   end
   def run_caps_mac
-    self.run_align_assess
+    #self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
     Dir.mkdir("temp_data/#{self.alignment_name}/caps") unless File.directory?("temp_data/#{self.alignment_name}/caps")
     alignments = Alignment.all(:alignment_name => self.alignment_name)
@@ -548,7 +563,7 @@ class Alignment
   end
 
   def run_xdet
-    self.run_align_assess
+    #self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
     alignments = Alignment.all(:alignment_name => self.alignment_name)
     alignments.each do |alignment|
@@ -558,7 +573,7 @@ class Alignment
   end
   
   def run_xdet_threaded(thread_num=4)
-    self.run_align_assess
+    #self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
     alignments = Alignment.all(:alignment_name => self.alignment_name)
     alignment_array = []
@@ -742,7 +757,7 @@ class Alignment
     end
     f = File.new(filepath, "w+")
     alignments.each do |alignment|
-      f.write(alignment.fasta_alignment_string)
+      f.write(alignment.fasta_alignment_string_inter)
     end
     f.close
     filepath
@@ -822,6 +837,13 @@ class Alignment
       }
     end
     thread_array.map{|t| t.join}
+  end
+  
+  def delete_disorders
+    self.sequences.each do |seq|
+      puts seq.abrev_name
+      seq.disorders.destroy!
+    end
   end
 
   def delete_caps
