@@ -571,6 +571,7 @@ class Alignment
          while alignment_array.length > 0 do
           alignment = alignment_array.pop
           filename= alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}")
+          filename= alignment.generate_pid_fasta_file_for_inter("temp_data/#{self.alignment_name}")
           system "./lib/comp_apps/XDet/xdet_linux32 #{filename} ~/Rails/DisICC/lib/comp_apps/XDet/Maxhom_McLachlan.metric >> #{filename}_xdet"
         end
       }
@@ -714,7 +715,7 @@ class Alignment
       end
     end
     seq = Sequence.get(self.seq_id)
-    fasta_string = ">"+seq.abrev_name + "\n" + self.alignment_sequence+ extra_str+"\n"
+    fasta_string = ">"+seq.abrev_name + "\n" + self.alignment_sequence#+ extra_str+"\n"
   end
   
   def fasta_alignment_string(extra_string="",longest_alignment_length=0)

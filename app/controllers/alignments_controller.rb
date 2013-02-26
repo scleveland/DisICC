@@ -193,6 +193,7 @@ class AlignmentsController < ApplicationController
             temp_hash[:pids] = PercentIdentity.all(:seq1_id => alignment.sequence.seq_id, :percent_id.gt => 19,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count
             temp_hash[:aa_count] = seq.a_asequences.count
             temp_hash[:seq_length] = seq.sequence.length
+            temp_hash[:alignment_position_count] = AlignmentPosition.all(:alignment_id => alignment.align_id).count
             temp_hash[:consensus] = alignment.sequence.a_asequences.all(:contact_consensus.gte => 0.5).count
             @comp_array[alignment.align_order] = temp_hash
          end
