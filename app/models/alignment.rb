@@ -715,7 +715,7 @@ class Alignment
       end
     end
     seq = Sequence.get(self.seq_id)
-    fasta_string = ">"+seq.abrev_name + "\n" + self.alignment_sequence +"\n"
+    fasta_string = ">"+seq.abrev_name + "\n" + self.alignment_sequence + "\n"
   end
   
   def fasta_alignment_string(extra_string="",longest_alignment_length=0)
