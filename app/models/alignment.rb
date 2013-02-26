@@ -570,7 +570,7 @@ class Alignment
        thread_array[i] = Thread.new{
          while alignment_array.length > 0 do
           alignment = alignment_array.pop
-          filename= alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}")
+          #filename= alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}")
           filename= alignment.generate_pid_fasta_file_for_inter("temp_data/#{self.alignment_name}")
           system "./lib/comp_apps/XDet/xdet_linux32 #{filename} ~/Rails/DisICC/lib/comp_apps/XDet/Maxhom_McLachlan.metric >> #{filename}_xdet"
         end
