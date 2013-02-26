@@ -594,6 +594,29 @@ class Alignment
     thread_array.map{|t| t.join}
   end
   
+  def run_xdet_without_fasta_threaded(thread_num=4)
+    #self.run_align_assess
+    Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
+    alignments = Alignment.all(:alignment_name => self.alignment_name)
+    alignment_array = []
+    alignments.each do |a|
+      alignment_array << a
+    end
+    thread_array=[]
+     thread_num.times do |i|
+       thread_array[i] = Thread.new{
+         while alignment_array.length > 0 do
+          alignment = alignment_array.pop
+          #filename= alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}")
+          #filename= alignment.generate_pid_fasta_file_for_inter("temp_data/#{self.alignment_name}")
+          filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta
+          system "./lib/comp_apps/XDet/xdet_linux32 #{filename} ~/Rails/DisICC/lib/comp_apps/XDet/Maxhom_McLachlan.metric >> #{filename}_xdet"
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
+  
  
   
   def run_rate4site
