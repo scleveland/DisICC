@@ -79,11 +79,71 @@ class Sequence
     seq
   end
   
+  def calculate_contact_consensus(thread_num=100)
+    aa_array =[]
+    self.a_asequences.each do |amino_acid|
+      aa_array << amino_acid
+    end
+    thread_array=[]
+    thread_num.times do |i|
+        thread_array[i] = Thread.new{
+          while aa_array.length > 0 do
+            aaseq = aa_array.pop
+            count = 0
+            # if !IntraResidueContact.first(:seq_id => aaseq.seq_id, :first_residue=> aaseq.original_position).nil?
+            #                 count +=1
+            #               elsif !IntraResidueContact.first(:seq_id => aaseq.seq_id, :second_residue=> aaseq.original_position).nil?
+            #                 count +=1
+            #               end
+            #               if !Conseq.first(:aasequence_id => aaseq.AAsequence_id).nil?
+            #                 if Conseq.first(:aasequence_id => aaseq.AAsequence_id).color < 4
+            #                   count +=1
+            #                 end
+            #               end
+            if !Xdet.first(:aasequence_id => aaseq.AAsequence_id).nil?
+              if Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation > 0.0 || Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation == -2
+                count +=1
+                puts "Xdet"
+              end
+            end
+            if !NewCap.first(:seq_id=> aaseq.seq_id, :position_one => aaseq.original_position).nil?
+              count +=1
+            elsif !NewCap.first(:seq_id=> aaseq.seq_id, :position_two => aaseq.original_position).nil?
+              count +=1
+            end
+            aaseq.contact_consensus = count /2#4
+            puts count.to_s + " : " + aaseq.contact_consensus.to_s
+            aaseq.save
+          end  
+        }
+     end
+     thread_array.map{|t| t.join}          
+  end
+  
+  def calculate_intra_consensus(special=false, thread_num=100)
+    aaseq_array = self.a_asequences.to_a 
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+         while aaseq_array.length > 0 do
+            aaseq = aaseq_array.pop
+            if special
+              aaseq.calculate_intra_consensus_value_special
+            else
+              aaseq.calculate_intra_consensus_value
+            end
+         end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
+  
   def generate_aasequences
     self.a_asequences.destroy!
-    (0..self.sequence.length-1).each do |i|
+    sequence = self.sequence.gsub("\n","").gsub("\r","")
+    (0..sequence.length-1).each do |i|
       AAsequence.create(:seq_id=> self.seq_id,
-                       :amino_acid=>self.sequence[i],
+                       :amino_acid=>sequence[i],
                        :original_position=>i)
     end
   end
@@ -412,7 +472,7 @@ class Sequence
         puts "Submitting Cornet for: #{self.abrev_name}"
         url ="http://gpcr.biocomp.unibo.it/cgi/predictors/cornet/pred_cmapcgi.cgi"
         cur = Curl::Easy.new(url)
-        post_params= "address=sean.b.cleveland@gmail.com&seqname=#{self.abrev_name}&db=SwissProt&text=#{self.sequence}&filter=No"
+        post_params= "address=sean.b.cleveland@gmail.com&seqname=#{self.abrev_name}&db=SwissProt&text=#{self.sequence.gsub("\n","").gsub("\r","")}&filter=No"
         cur.http_post(post_params)
         puts post_params
          puts cur.body_str.to_s
@@ -715,6 +775,37 @@ class Sequence
     end
   end
   
+  def import_conseq(alignment)
+    seq = self      
+    #open file that corresponds to this sequence
+    puts filename = "temp_data/#{alignment.alignment_name}/conseq/#{seq.abrev_name}.conseq"
+    if File.exists?(filename)
+      seq.conseqs.destroy!
+      puts "File exists"
+      file = File.new(filename, "r")
+      start_line = 13
+      line_num = 1
+      while (line = file.gets)
+        if line_num > start_line
+          results = line.split     
+          puts results       
+          cq = Conseq.new(:seq_id =>seq.seq_id,
+                        :aasequence_id => seq.a_asequences.first(:original_position=>results[0].to_i-1).id,
+                        :score => results[2].to_f,
+                        :color => results[3].to_i,
+                        :state => results[4],
+                        :function => results[5],
+                        :msa_data => results[6],
+                        :residue_variety => results[7])
+          cq.valid?
+          puts cq.errors.inspect()
+          cq.save
+        end
+        line_num +=1
+      end #end while
+    end #end if
+  end
+  
   def generate_jalview_annotation_iupred
     jalview_string= ""
     dis = Disorder.first(:seq_id=>self.seq_id)
@@ -790,6 +881,34 @@ class Sequence
       repository.adapter.execute(sql)
       sql="UPDATE a_asequences SET contact_positive_consensus =0.0 WHERE seq_id=#{self.seq_id}"
       repository.adapter.execute(sql)
+  end
+  
+  def import_cornet(alignment)
+    #open file that corresponds to this sequence
+    seq = self
+    puts filename = "temp_data/#{alignment.alignment_name}/cornet/#{seq.abrev_name}.cornet"
+    if File.exists?(filename)
+      seq.intra_residue_contacts(:type => "Cornet").destroy!
+      puts "File exists"
+      file = File.new(filename, "r")
+      start_line = 17
+      line_num = 1
+      while (line = file.gets)
+        if line_num > start_line
+          results = line.split     
+          puts results       
+          intra = IntraResidueContact.new(:seq_id => seq.seq_id,
+           :first_residue =>results[0].to_i,
+           :second_residue =>results[1].to_i,
+           :confidence => results[2].to_f,
+           :type => "Cornet")
+          intra.valid?
+          puts intra.errors.inspect()
+          intra.save
+        end
+        line_num +=1
+      end #end while
+    end #end if
   end
   
   def import_svmcon
