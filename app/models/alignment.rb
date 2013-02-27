@@ -48,7 +48,7 @@ class Alignment
       thread_array[i] = Thread.new{
         while alignment_array.length > 0 do
           align = alignment_array.pop
-          AlignmentPosition.all(:alignment_id => align.align_id).destroy
+          AlignmentPosition.all(:alignment_id => align.align_id).destroy!
           align.alignment_to_positions()
         end
      }
@@ -61,6 +61,7 @@ class Alignment
     counter = 0
     aa_counter = 0
     sequence= self.sequence
+    AlignmentPosition.all(:alignment_id => self.align_id).destroy!
     self.alignment_sequence.each_char do |aa|
       if aa != "-"
         #puts "counter: "+ counter.to_s + "  |aa :" + aa
@@ -224,7 +225,7 @@ class Alignment
            #     response.return!(request, result, &block)
            #   end
            # }
-           system("curl -i -F ALGORITHM=Bayes -F email_address=sean.b.cleveland@gmail.com -F msa_SEQNAME=#{alignment.sequence.abrev_name} -F send_user_mail=yes -F filedata=@temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta http://conseq.tau.ac.il/cgi-bin/conseq_qsub.cgi")
+           system("curl -i -F ALGORITHM=Bayes -F email_address=sean.b.cleveland@gmail.com -F msa_SEQNAME=#{alignment.sequence.abrev_name} -F send_user_mail=yes -F msa_FILE=@temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta http://conseq.tau.ac.il/cgi-bin/conseq_qsub.cgi")
            #cur.http_post(post_params)
            #puts post_params
            #puts cur.body_str.to_s
@@ -294,6 +295,13 @@ class Alignment
        }
      end
      thread_array.map{|t| t.join}
+    end
+    
+    def run_cornet
+     alignments = Alignment.all(:alignment_name => self.alignment_name)
+     alignments.each do |alignment|
+       alignment.sequence.run_cornet
+     end
     end
     
   def run_caps_threaded(thread_num = 6)
@@ -518,6 +526,46 @@ class Alignment
     end
     thread_array.map{|t| t.join}
   end
+  
+  def import_xdet_for_seq(thread_num=4)
+    seq_array = []
+    seq_array << self.sequence
+    thread_array=[]
+    thread_num.times do |i|
+    thread_array[i] = Thread.new{
+       while seq_array.length > 0 do
+          seq = seq_array.pop
+          puts filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{seq.abrev_name}_pid.fasta_xdet"#fasta.out"
+          if File.exists?(filename)
+            puts "File exists"
+            puts "File exists"
+            puts "File exists**************************************************************************************************************"
+            file = File.new(filename, "r")
+            while (line = file.gets)
+                break if line == "\n"
+                results = line.split
+                puts "Postion:"+results[0]+ "| Conservation:" + results[4] + "| Correlation:" + results[8]
+                begin
+                xd = Xdet.new(
+                  :aasequence_id =>AlignmentPosition.first(:position=> results[0].to_i-1,:alignment_id=>self.align_id).aasequence_id,
+                  :conservation => results[8].to_f, 
+                  :correlation => results[4].to_f, 
+                  :seq_id => seq.seq_id
+                )  
+                xd.valid?
+                puts xd.errors.inspect()
+                xd.save
+                rescue Exception => e
+                  puts "Something went not right. It went wrong in fact. It went uncorrect.!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                  puts e.message
+                end
+            end #end while
+          end #end if
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
 
   def import_xdet_new(thread_num=4)
     alignments = Alignment.all(:alignment_name => self.alignment_name)
@@ -560,6 +608,51 @@ class Alignment
       }
     end
     thread_array.map{|t| t.join}
+  end
+  
+  def import_xdet_missing(thread_num=4)
+    alignments = Alignment.all(:alignment_name => self.alignment_name)
+    alignment_array = []
+    alignments.each do |a|
+      if Xdet.all(:seq_id => a.seq_id).count == 0 && PercentIdentity.all(:seq1_id => a.seq_id, :percent_id.gte => 19, :order =>[:percent_id.desc],:alignment_name=>a.alignment_name).count > 9
+        alignment_array << a
+      end
+    end
+    #thread_array=[]
+    #thread_num.times do |i|
+    #thread_array[i] = Thread.new{
+       while alignment_array.length > 0 do
+          alignment = alignment_array.pop
+          puts filename = "temp_data/#{alignment.alignment_name}/#{alignment.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta_xdet"#fasta.out"
+          if File.exists?(filename)
+            puts "File exists"
+            puts "File exists"
+            puts "File exists**************************************************************************************************************"
+            file = File.new(filename, "r")
+            while (line = file.gets)
+                break if line == "\n"
+                results = line.split
+                puts "Postion:"+results[0]+ "| Conservation:" + results[4] + "| Correlation:" + results[8]
+                begin
+                xd = Xdet.new(
+                  :aasequence_id =>AlignmentPosition.first(:position=> results[0].to_i-1,:alignment_id=>alignment.align_id).aasequence_id,
+                  :conservation => results[8].to_f, 
+                  :correlation => results[4].to_f, 
+                  :seq_id => alignment.sequence.seq_id
+                )  
+                xd.valid?
+                puts xd.errors.inspect()
+                xd.save
+                rescue Exception => e
+                  puts "Something went not right. It went wrong in fact. It went uncorrect.!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                  puts e.message
+                end
+            end #end while
+          end #end if
+        end
+    #  }
+    #end
+    #thread_array.map{|t| t.join}
   end
 
   def run_xdet
@@ -634,7 +727,7 @@ class Alignment
     self.run_align_assess
     self.sequences.each do |seq|
       fasta_string=""
-      pids = PercentIdentity.all(:seq1_id => seq.seq_id, :percent_id.gte => 20, :order =>[:percent_id.desc])
+      pids = PercentIdentity.all(:seq1_id => seq.seq_id, :percent_id.gte => 19, :order =>[:percent_id.desc])
       if pids.count > 10
         fasta_string= Alignment.first(:alignment_name => self.alignment_name, :seq_id=>seq.seq_id).fasta_alignment_string
         puts seq.abrev_name+":"+pids.count.to_s
@@ -653,18 +746,30 @@ class Alignment
     end
   end
  
+  def generate_pid_inter_fasta_files(dir="temp_data")
+    alignments = Alignment.all(:alignment_name => self.alignment_name)
+    alignments.each do |a|
+      if PercentIdentity.all(:seq1_id => a.sequence.seq_id, :percent_id.gte => 19, :order =>[:percent_id.desc], :alignment_name => self.alignment_name).count > 9
+        a.generate_pid_fasta_file_for_inter(dir)
+      end
+    end
+  end
   #assumes that run_align_asses has already occured
    def generate_pid_fasta_file_for_inter(dir="temp_data", longest_alignment_length=0)
      fasta_string=""
+     Dir.mkdir("#{dir}") unless File.directory?("#{dir}")
      seq = Sequence.get(self.seq_id)
      pids = PercentIdentity.all(:seq1_id => self.seq_id, :percent_id.gte => 19, :order =>[:percent_id.desc],:unique=>true)
-     fasta_string= Alignment.first(:alignment_name => self.alignment_name, :seq_id=>self.seq_id).fasta_alignment_string_inter("",longest_alignment_length)
+     fasta_string= Alignment.first(:alignment_name => self.alignment_name, :seq_id=>self.seq_id).fasta_alignment_string_inter()
      puts seq.abrev_name+":"+pids.count.to_s
      puts pids.map{|p| p.seq2_sequence.seq_name}.join(',')
-     pids.each do |pid|
-       if pid.seq2_id != seq.id
-         print Sequence.get(pid.seq2_id).abrev_name + ":" + pid.percent_id.to_s + ","
-         fasta_string = fasta_string + Alignment.first(:alignment_name=>pid.alignment_name, :seq_id=>pid.seq2_id).fasta_alignment_string_inter("pid:#{pid.percent_id}",longest_alignment_length)
+     seq_array = pids.map{|p| p.seq2_id}.uniq  
+     seq_array.each do |seq_id|
+       if seq_id != seq.id
+         if Alignment.first(:alignment_name=>self.alignment_name, :seq_id=>seq_id)
+           print Sequence.get(seq_id).abrev_name + ":" + pids.first(:seq2_id =>seq_id).percent_id.to_s + ","
+          fasta_string = fasta_string + Alignment.first(:alignment_name=>self.alignment_name, :seq_id=>seq_id).fasta_alignment_string_inter()
+         end
        end
      end
      puts ""
@@ -711,7 +816,7 @@ class Alignment
       pids.each do |pid|
         if pid.seq2_id != seq.id
           print Sequence.get(pid.seq2_id).abrev_name + ":" + pid.percent_id.to_s + ","
-          fasta_string = fasta_string + Alignment.first(:alignment_name=>pid.alignment_name, :seq_id=>pid.seq2_id).fasta_alignment_string("pid:#{pid.percent_id}",longest_alignment_length)
+          fasta_string = fasta_string + Alignment.first(:alignment_name=>pid.alignment_name, :seq_id=>pid.seq2_id).fasta_alignment_string()
         end
       end
       puts ""
@@ -741,7 +846,7 @@ class Alignment
     self.alignment_seqence = fasta_string
     self.save
   end
-  def fasta_alignment_string_inter(extra_string="",longest_alignment_length=0)
+  def fasta_alignment_string_inter(longest_alignment_length=0)
     if self.alignment_sequence.empty?
       self.update_alignment_sequence
     end
@@ -753,7 +858,7 @@ class Alignment
       end
     end
     seq = Sequence.get(self.seq_id)
-    fasta_string = ">"+seq.abrev_name + "\n" + self.alignment_sequence + "\n"
+    fasta_string = ">"+seq.abrev_name + "\n" + self.alignment_sequence.gsub("\n","") + "\n"
   end
   
   def fasta_alignment_string(extra_string="",longest_alignment_length=0)
@@ -944,6 +1049,45 @@ class Alignment
     thread_array.map{|t| t.join}
   end
   
+  def calculate_intraresidue_consensus_threaded(thread_num=65,special=false)
+    alignment_array =[]
+    Alignment.all(:alignment_name => self.alignment_name, :order => [:align_order.asc]).each do |alignment|
+      alignment_array << alignment
+    end
+    thread_array=[]
+    thread_num.times do |i|
+        thread_array[i] = Thread.new{
+          while alignment_array.length > 0 do
+            alignment = alignment_array.pop
+            puts alignment.sequence.abrev_name + ":Started"
+            alignment.sequence.calculate_intra_consensus(special)
+            # puts alignment.sequence.abrev_name + ":STARTED"
+            #             AAsequence.all(:seq_id => alignment.seq_id).each do |aaseq|
+            #               count = 0
+            #               # if !IntraResidueContact.first(:seq_id => aaseq.seq_id, :first_residue=> aaseq.original_position).nil?
+            #               #                 count +=1
+            #               #               elsif !IntraResidueContact.first(:seq_id => aaseq.seq_id, :second_residue=> aaseq.original_position).nil?
+            #               #                 count +=1
+            #               #               end
+            #               if !Conseq.first(:aasequence_id => aaseq.AAsequence_id).nil? && Conseq.first(:aasequence_id => aaseq.AAsequence_id).color > 4
+            #                   count +=1
+            #               end
+            #               if !Xdet.first(:aasequence_id => aaseq.AAsequence_id).nil? & (Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation > 0.0 || Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation == -2)
+            #                   count +=1
+            #               end
+            #               if !NewCap.first(:seq_id=> aaseq.seq_id, :position_one => aaseq.original_position).nil? || !NewCap.first(:seq_id=> aaseq.seq_id, :position_two => aaseq.original_position).nil?
+            #                 count +=1
+            #               end
+            #               aaseq.contact_consensus = count /3#4
+            #               aaseq.save
+            #end  
+            puts alignment.sequence.abrev_name + ":DONE"
+          end
+        }
+     end
+     thread_array.map{|t| t.join}          
+  end
+  
   def evaluate_caps_distances(thread_num = 200)
     self.sequences.each do |s|
       s.evaluate_new_caps_distances(thread_num)
@@ -959,4 +1103,84 @@ class Alignment
       puts s.abrev_name + "\t| Caps Count: " + caps_count.to_s + "\t | Caps GTT Count: " + gtt.to_s + ", (%20): " + (caps_count > 0 ? (gtt/caps_count).to_s : "0") +  "\t|CAPS GTF: " + gtf.to_s + ", (%50): " + (caps_count > 0 ? (gtf/caps_count).to_s : "0") + "\t|CAPS GTH: " + gth.to_s + ", (%100): " + (caps_count > 0 ? (gth/caps_count).to_s : "0") 
     end
   end
+  
+  
+  def import_conseq(thread_num=65)
+    seq_array = self.sequences.to_a
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+        while seq_array.length > 0 do
+          seq = seq_array.pop      
+          #open file that corresponds to this sequence
+          puts filename = "temp_data/#{self.alignment_name}/conseq/#{seq.abrev_name}.conseq"
+          if File.exists?(filename)
+            seq.conseqs.destroy!
+            puts "File exists"
+            file = File.new(filename, "r")
+            start_line = 13
+            line_num = 1
+            while (line = file.gets)
+              if line_num > start_line
+                results = line.split     
+                puts results       
+                cq = Conseq.new(:seq_id =>seq.seq_id,
+                              :aasequence_id => seq.a_asequences.first(:original_position=>results[0].to_i-1).id,
+                              :score => results[2].to_f,
+                              :color => results[3].to_i,
+                              :state => results[4],
+                              :function => results[5],
+                              :msa_data => results[6],
+                              :residue_variety => results[7])
+                cq.valid?
+                puts cq.errors.inspect()
+                cq.save
+              end
+              line_num +=1
+            end #end while
+          end #end if
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
+  
+  
+  def import_cornet(thread_num=65)
+    seq_array = self.sequences.to_a
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+        while seq_array.length > 0 do
+          seq = seq_array.pop      
+          #open file that corresponds to this sequence
+          puts filename = "temp_data/#{self.alignment_name}/cornet/#{seq.abrev_name}.cornet"
+          if File.exists?(filename)
+            seq.intra_residue_contacts(:type => "Cornet").destroy!
+            puts "File exists"
+            file = File.new(filename, "r")
+            start_line = 17
+            line_num = 1
+            while (line = file.gets)
+              if line_num > start_line
+                results = line.split     
+                puts results       
+                intra = IntraResidueContact.new(:seq_id => seq.seq_id,
+                 :first_residue =>results[0].to_i,
+                 :second_residue =>results[1].to_i,
+                 :confidence => results[2].to_f,
+                 :type => "Cornet")
+                intra.valid?
+                puts intra.errors.inspect()
+                intra.save
+              end
+              line_num +=1
+            end #end while
+          end #end if
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
+  
 end

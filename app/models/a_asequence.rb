@@ -16,4 +16,41 @@ class AAsequence
   has n, :disorder_values, 'DisorderValue', :child_key => [:aasequence_id], :parent_key =>[:id]
   has 1, :xdet, 'Xdet', :child_key => :aasequence_id
   has 1, :conseq, 'Conseq', :child_key => :aasequence_id
+  
+  
+  def calculate_intra_consensus_value
+    count=0
+    if IntraResidueContact.all(:seq_id => self.seq_id, :first_residue=>self.original_position) || IntraResidueContact.all(:seq_id => self.seq_id, :second_residue=>self.original_position)
+      count +=1
+    end
+    if !Conseq.first(:aasequence_id => self.AAsequence_id).nil? && Conseq.first(:aasequence_id => self.AAsequence_id).color > 4
+        count +=1
+    end
+    if !Xdet.first(:aasequence_id => self.AAsequence_id).nil? && (Xdet.first(:aasequence_id => self.AAsequence_id).correlation > 0.0 || Xdet.first(:aasequence_id => self.AAsequence_id).correlation == -2)
+        count +=1
+    end
+    if !NewCap.first(:seq_id=> self.seq_id, :position_one => self.original_position).nil? || !NewCap.first(:seq_id=> self.seq_id, :position_two => self.original_position).nil?
+      count +=1
+    end
+    self.contact_consensus = count /4
+    puts self.contact_consensus
+    self.save
+  end
+  
+  def calculate_intra_consensus_value_special
+    count=0
+    if !Conseq.first(:aasequence_id => self.AAsequence_id).nil? && Conseq.first(:aasequence_id => self.AAsequence_id).color > 4
+        count +=1
+    end
+    if !Xdet.first(:aasequence_id => self.AAsequence_id).nil? && (Xdet.first(:aasequence_id => self.AAsequence_id).correlation > 0.0 || Xdet.first(:aasequence_id => self.AAsequence_id).correlation == -2)
+        count +=1
+    end
+    if !NewCap.first(:seq_id=> self.seq_id, :position_one => self.original_position).nil? || !NewCap.first(:seq_id=> self.seq_id, :position_two => self.original_position).nil?
+      count +=1
+    end
+    self.contact_consensus = count/3
+    self.save
+    puts self.contact_consensus
+  end
+  
 end

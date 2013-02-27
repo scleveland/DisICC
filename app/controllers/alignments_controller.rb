@@ -192,7 +192,7 @@ class AlignmentsController < ApplicationController
             temp_hash[:id] = seq.seq_id
             temp_hash[:pids] = PercentIdentity.all(:seq1_id => alignment.sequence.seq_id, :percent_id.gt => 19,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count
             temp_hash[:aa_count] = seq.a_asequences.count
-            temp_hash[:seq_length] = seq.sequence.length
+            temp_hash[:seq_length] = seq.sequence.gsub("\n","").gsub("\r","").length
             temp_hash[:alignment_position_count] = AlignmentPosition.all(:alignment_id => alignment.align_id).count
             temp_hash[:consensus] = alignment.sequence.a_asequences.all(:contact_consensus.gte => 0.5).count
             @comp_array[alignment.align_order] = temp_hash
@@ -468,32 +468,27 @@ class AlignmentsController < ApplicationController
         thread_array[i] = Thread.new{
           while alignment_array.length > 0 do
             alignment = alignment_array.pop
-            puts alignment.sequence.abrev_name + ":STARTED"
-            AAsequence.all(:seq_id => alignment.seq_id).each do |aaseq|
-              count = 0
-              # if !IntraResidueContact.first(:seq_id => aaseq.seq_id, :first_residue=> aaseq.original_position).nil?
-              #                 count +=1
-              #               elsif !IntraResidueContact.first(:seq_id => aaseq.seq_id, :second_residue=> aaseq.original_position).nil?
-              #                 count +=1
-              #               end
-              #               if !Conseq.first(:aasequence_id => aaseq.AAsequence_id).nil?
-              #                 if Conseq.first(:aasequence_id => aaseq.AAsequence_id).color < 4
-              #                   count +=1
-              #                 end
-              #               end
-              if !Xdet.first(:aasequence_id => aaseq.AAsequence_id).nil?
-                if Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation > 0.0 || Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation == -2
-                  count +=1
-                end
-              end
-              if !NewCap.first(:seq_id=> aaseq.seq_id, :position_one => aaseq.original_position).nil?
-                count +=1
-              elsif !NewCap.first(:seq_id=> aaseq.seq_id, :position_two => aaseq.original_position).nil?
-                count +=1
-              end
-              aaseq.contact_consensus = count /2#4
-              aaseq.save
-            end  
+            alignment.sequence.calculate_intra_consensus
+            # puts alignment.sequence.abrev_name + ":STARTED"
+            #             AAsequence.all(:seq_id => alignment.seq_id).each do |aaseq|
+            #               count = 0
+            #               # if !IntraResidueContact.first(:seq_id => aaseq.seq_id, :first_residue=> aaseq.original_position).nil?
+            #               #                 count +=1
+            #               #               elsif !IntraResidueContact.first(:seq_id => aaseq.seq_id, :second_residue=> aaseq.original_position).nil?
+            #               #                 count +=1
+            #               #               end
+            #               if !Conseq.first(:aasequence_id => aaseq.AAsequence_id).nil? && Conseq.first(:aasequence_id => aaseq.AAsequence_id).color > 4
+            #                   count +=1
+            #               end
+            #               if !Xdet.first(:aasequence_id => aaseq.AAsequence_id).nil? & (Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation > 0.0 || Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation == -2)
+            #                   count +=1
+            #               end
+            #               if !NewCap.first(:seq_id=> aaseq.seq_id, :position_one => aaseq.original_position).nil? || !NewCap.first(:seq_id=> aaseq.seq_id, :position_two => aaseq.original_position).nil?
+            #                 count +=1
+            #               end
+            #               aaseq.contact_consensus = count /3#4
+            #               aaseq.save
+            #end  
             puts alignment.sequence.abrev_name + ":DONE"
           end
         }
