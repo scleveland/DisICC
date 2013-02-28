@@ -121,7 +121,10 @@ class Sequence
   end
   
   def calculate_intra_consensus(special=false, thread_num=100)
-    aaseq_array = self.a_asequences.to_a 
+    aaseq_array = []
+    self.a_asequences.each do |aa|
+      aaseq_array << aa
+    end
     thread_array=[]
     thread_num.times do |i|
       thread_array[i] = Thread.new{
@@ -176,6 +179,44 @@ class Sequence
     end
     begin
       self.generate_disembl
+    rescue Exception => e  
+      puts self.abrev_name + " DisEMBL failed!"
+      puts e.message
+    end
+  end
+  
+  def store_disorder
+    begin
+      filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+"_iupred_short.fasta"
+      self.store_iupred_short(filepath)
+    rescue Exception => e  
+      puts self.abrev_name + " IUPRED short failed!"
+      puts e.message
+    end
+    begin
+      filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+"_iupred.fasta"
+      self.store_iupred(filepath)
+    rescue Exception => e  
+      puts self.abrev_name + " IUPRED long failed!"
+      puts e.message
+    end
+    begin
+      filepath= "temp_data/#{self.abrev_name}_RONN"
+      self.store_ronn(filepath)
+    rescue Exception => e  
+      puts self.abrev_name + " RONN failed!"
+      puts e.message
+    end
+    begin
+      filepath= "temp_data/#{self.abrev_name}_PondrFit"
+      self.store_pondr_fit(filepath)
+    rescue Exception => e  
+      puts self.abrev_name + " PONDRFit failed!"
+      puts e.message
+    end
+    begin
+      filepath= "temp_data/#{self.abrev_name}_Disembl"
+      self.store_disembl(filepath)
     rescue Exception => e  
       puts self.abrev_name + " DisEMBL failed!"
       puts e.message
@@ -273,7 +314,7 @@ class Sequence
         if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count, :amino_acid=>line_array[1])
         #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
         #if aa.amino_acid == line_array[1]  
-          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :position=> aa_count,:aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
         end
         aa_count +=1
       end
@@ -297,7 +338,7 @@ class Sequence
         if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count, :amino_acid=>line_array[1])
         puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s + "|" + line_array[2].to_f.to_s
         #if aa.amino_acid == line_array[1]  
-          dv = DisorderValue.new(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+          dv = DisorderValue.new(:disorder_id => dis.disorder_id, :position=> aa_count,:aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
           dv.valid?
           puts dv.errors.inspect()
           dv.save
@@ -425,7 +466,7 @@ class Sequence
          if aa = AAsequence.first(:seq_id => self.id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
          #if aa.amino_acid == line_array[1]  
-           DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
+           DisorderValue.create(:disorder_id => dis.disorder_id, :position=> aa_count,:aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
          end
          aa_count +=1
        end
@@ -548,7 +589,7 @@ class Sequence
          if aa = AAsequence.first(:seq_id => self.id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
          #if aa.amino_acid == line_array[1]  
-           DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+           DisorderValue.create(:disorder_id => dis.disorder_id, :position=> aa_count,:aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
          end
          aa_count +=1
      end
@@ -612,8 +653,8 @@ class Sequence
          if aa = AAsequence.first(:seq_id => self.id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
          #if aa.amino_acid == line_array[1]  
-           DisorderValue.create(:disorder_id => dis_coil.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[0].to_f) 
-           DisorderValue.create(:disorder_id => dis_hl.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
+           DisorderValue.create(:disorder_id => dis_coil.disorder_id,:position=> aa_count,:aasequence_id => aa.AAsequence_id, :dvalue=>line_array[0].to_f) 
+           DisorderValue.create(:disorder_id => dis_hl.disorder_id, :position=> aa_count,:aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
          end
          aa_count +=1
         elsif counter == 2
