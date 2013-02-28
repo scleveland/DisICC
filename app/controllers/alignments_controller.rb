@@ -156,6 +156,7 @@ class AlignmentsController < ApplicationController
             temp_hash[:id] = seq.id
             temp_hash[:type] = seq.seq_type
             temp_hash[:align_id] = alignment.align_id
+            temp_hash[:consensus_count] = seq.a_asequences.all(:disorder_consensus.gte => 0.5).count
             @dis_array[alignment.align_order] = temp_hash
          end
         }

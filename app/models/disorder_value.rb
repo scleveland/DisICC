@@ -4,6 +4,8 @@ class DisorderValue
   property :disorder_value_id, Serial#, :field => 'disorder_value_id'
   property :disorder_id, Integer, :required => true
   property :aasequence_id, Integer, :required => true
+  property :position, Integer, :required =>false
+  property :seq_id, Integer, :required => false
   property :dvalue, Float, :required => true
 
   #alias :id :disorder_value_id

@@ -4,6 +4,7 @@ class Conseq
   property :conseq_id, Serial
   property :seq_id, Integer, :required => true
   property :aasequence_id, Integer, :required => true
+  property :position, Integer, :required => false
   property :score, Float, :required => true
   property :color, Integer, :required => true
   property :state, String, :required => true
