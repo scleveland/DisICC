@@ -39,7 +39,7 @@ class NewCap
   property :greater_than_2500_away, Boolean, :required => false
   # has n, :disorder_values
   # belongs_to :sequence
-    belongs_to :sequence, 'Sequence', :child_key =>[:seq_id], :parent_key => [:seq_id]
+  #  belongs_to :sequence, 'Sequence', :child_key =>[:seq_id], :parent_key => [:seq_id]
     
   # eval_res_distances 
   # determine is the prediction's position one is further away than twenty residues from position two  

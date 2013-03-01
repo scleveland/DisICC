@@ -519,7 +519,7 @@ class AlignmentsController < ApplicationController
           while alignment_array.length > 0 do
             alignment = alignment_array.pop
             puts alignment.sequence.abrev_name + ":STARTED"
-            alignment.sequence.calculate_disorder_consensus_threaded()
+            alignment.sequence.calculate_disorder_consensus_threaded(20)
             puts alignment.sequence.abrev_name + ":DONE"
           end
         }

@@ -592,7 +592,7 @@ class Alignment
                   begin
                   xd = Xdet.new(
                     :aasequence_id =>AlignmentPosition.first(:position=> results[0].to_i-1,:alignment_id=>alignment.align_id).aasequence_id,
-                    :position => results[0].to-1,
+                    #:position => results[0].to_i-1,
                     :conservation => results[8].to_f, 
                     :correlation => results[4].to_f, 
                     :seq_id => alignment.sequence.seq_id
@@ -1098,6 +1098,26 @@ class Alignment
     thread_array.map{|t| t.join}
   end
   
+  def calculate_disorder_consensus_threaded(thread_num=65, second_thread_num=10)
+    alignment_array =[]
+    Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, :order => [:align_order.asc]).each do |alignment|
+      alignment_array << alignment
+    end
+    thread_array=[]
+    thread_num.times do |i|
+        thread_array[i] = Thread.new{
+          while alignment_array.length > 0 do
+            alignment = alignment_array.pop
+            puts alignment.sequence.abrev_name + ":STARTED"
+            alignment.sequence.calculate_disorder_consensus_threaded(second_thread_num)
+            puts alignment.sequence.abrev_name + ":DONE"
+          end
+        }
+     end
+     thread_array.map{|t| t.join}          
+     redirect_to(alignments_path)   
+  end
+  
   def calculate_intraresidue_consensus_threaded(thread_num=65,special=false)
     alignment_array =[]
     Alignment.all(:alignment_name => self.alignment_name, :order => [:align_order.asc]).each do |alignment|
@@ -1148,7 +1168,8 @@ class Alignment
             #open file that corresponds to this sequence
             puts filename = "temp_data/#{self.alignment_name}/conseq/#{seq.abrev_name}.conseq"
             if File.exists?(filename)
-              seq.conseqs.destroy!
+              #seq.conseqs.destroy!
+              Conseq.all(:seq_id=>seq.seq_id)
               puts "File exists"
               file = File.new(filename, "r")
               start_line = 13
@@ -1159,7 +1180,7 @@ class Alignment
                   puts line
                   begin       
                   cq = Conseq.new(:seq_id =>seq.seq_id,
-                                :aasequence_id => seq.a_asequences.first(:original_position=>results[0].to_i-1).id,
+                                :aasequence_id => seq.a_asequences.first(:original_position=>(results[0].to_i-1)).id,
                                 :position=> results[0].to_i-1,
                                 :score => results[2].to_f,
                                 :color => results[3].to_i,

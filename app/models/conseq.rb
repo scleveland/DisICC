@@ -13,6 +13,6 @@ class Conseq
   property :residue_variety, String, :required => false
   property :deleted_at, ParanoidDateTime
   
-  belongs_to :aasequence, 'AAsequence', :child_key => :aasequence_id
-  has 1, :sequence, :through=>:aasequence
+  #belongs_to :aasequence, 'AAsequence', :child_key => :aasequence_id
+  #has 1, :sequence, :through=>:aasequence
 end
