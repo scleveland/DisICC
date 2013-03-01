@@ -660,6 +660,7 @@ class Alignment
 
   def run_xdet
     #self.run_align_assess
+    Dir.mkdir("#{dir}") unless File.directory?("#{dir}")
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
     alignments = Alignment.all(:alignment_name => self.alignment_name)
     alignments.each do |alignment|
@@ -670,6 +671,7 @@ class Alignment
   
   def run_xdet_threaded(dir="temp_data", thread_num=4)
     #self.run_align_assess
+    Dir.mkdir("#{dir}") unless File.directory?("#{dir}")
     Dir.mkdir("#{dir}/#{self.alignment_name}") unless File.directory?("#{dir}/#{self.alignment_name}")
     alignments = Alignment.all(:alignment_name => self.alignment_name)
     alignment_array = []
