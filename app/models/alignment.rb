@@ -1108,14 +1108,15 @@ class Alignment
         thread_array[i] = Thread.new{
           while alignment_array.length > 0 do
             alignment = alignment_array.pop
-            puts alignment.sequence.abrev_name + ":STARTED"
-            alignment.sequence.calculate_disorder_consensus_threaded(second_thread_num)
-            puts alignment.sequence.abrev_name + ":DONE"
+            if PercentIdentity.all(:seq1_id => seq.seq_id, :percent_id.gte => 19,:percent_id.lt => 90, :alignment_name => self.alignment_name).count > 9
+              puts alignment.sequence.abrev_name + ":STARTED"
+              alignment.sequence.calculate_disorder_consensus_threaded(second_thread_num)
+              puts alignment.sequence.abrev_name + ":DONE"
+            end
           end
         }
      end
      thread_array.map{|t| t.join}          
-     redirect_to(alignments_path)   
   end
   
   def calculate_intraresidue_consensus_threaded(thread_num=65,special=false)
