@@ -1108,7 +1108,7 @@ class Alignment
         thread_array[i] = Thread.new{
           while alignment_array.length > 0 do
             alignment = alignment_array.pop
-            if PercentIdentity.all(:seq1_id => seq.seq_id, :percent_id.gte => 19,:percent_id.lt => 90, :alignment_name => self.alignment_name).count > 9
+            if PercentIdentity.all(:seq1_id => alignment.sequence.seq_id, :percent_id.gte => 19,:percent_id.lt => 90, :alignment_name => alignment.alignment_name).count > 9
               puts alignment.sequence.abrev_name + ":STARTED"
               alignment.sequence.calculate_disorder_consensus_threaded(second_thread_num)
               puts alignment.sequence.abrev_name + ":DONE"
