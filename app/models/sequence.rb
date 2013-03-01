@@ -444,14 +444,29 @@ class Sequence
           #else
           #  aa.disorder_consensus = 0
           #end
-          aa.disorder_consensus = DisorderValue.all(:aasequence_id => aa.id, :disorder_id => dis_ids, :dvalue.gte => 0.5 ).count#.avg(:dvalue)
+          # aa.disorder_consensus = DisorderValue.all(:aasequence_id => aa.id, :disorder_id => dis_ids, :dvalue.gte => 0.5 ).count#.avg(:dvalue)
+          # if !dis_hl.nil?
+          #   if !DisorderValue.first(:aasequence_id => aa.id, :disorder_id => dis_hl.id, :dvalue.gte => dis_hl.threshold).nil?
+          #   aa.disorder_consensus  = aa.disorder_consensus + 1
+          #   end
+          # end
+          # if !dis_c.nil?
+          #   if !DisorderValue.first(:aasequence_id=>aa.id, :disorder_id => dis_c.id, :dvalue.gte => dis_c.threshold).nil?
+          #   aa.disorder_consensus  = aa.disorder_consensus + 1
+          #   end
+          # end
+          
+          
+          
+          aa.disorder_consensus = DisorderValue.all(:position => aa.original_position, :disorder_id => dis_ids, :dvalue.gte => 0.5 ).count#.avg(:dvalue)
+          puts aa.disorder_consensus
           if !dis_hl.nil?
-            if !DisorderValue.first(:aasequence_id => aa.id, :disorder_id => dis_hl.id, :dvalue.gte => dis_hl.threshold).nil?
+            if !DisorderValue.first(:position => aa.original_position,  :disorder_id => dis_hl.id, :dvalue.gte => dis_hl.threshold).nil?
             aa.disorder_consensus  = aa.disorder_consensus + 1
             end
           end
           if !dis_c.nil?
-            if !DisorderValue.first(:aasequence_id=>aa.id, :disorder_id => dis_c.id, :dvalue.gte => dis_c.threshold).nil?
+            if !DisorderValue.first(:position => aa.original_position,  :disorder_id => dis_c.id, :dvalue.gte => dis_c.threshold).nil?
             aa.disorder_consensus  = aa.disorder_consensus + 1
             end
           end
@@ -462,6 +477,34 @@ class Sequence
       }
     end
     thread_array.map{|t| t.join}
+  end
+  
+  def calculate_disorder_consensus
+    aa_array =[]
+    AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
+      aa_array << aa
+    end
+    dis_ids = self.disorders.all(:disorder_type.not =>["DisEMBL Hotloops", "DisEMBL Coils"]).map{|k| k.disorder_id}
+    dis_hl = self.disorders.first(:disorder_type => "DisEMBL Hotloops")
+    dis_c = self.disorders.first(:disorder_type => "DisEMBL Coils")
+    while aa_array.length > 0 do
+      aa = aa_array.pop
+      aa.disorder_consensus = DisorderValue.all(:position => aa.original_position, :disorder_id => dis_ids, :dvalue.gte => 0.5 ).count#.avg(:dvalue)
+      puts aa.disorder_consensus
+      if !dis_hl.nil?
+        if !DisorderValue.first(:position => aa.original_position,  :disorder_id => dis_hl.id, :dvalue.gte => dis_hl.threshold).nil?
+        aa.disorder_consensus  = aa.disorder_consensus + 1
+        end
+      end
+      if !dis_c.nil?
+        if !DisorderValue.first(:position => aa.original_position,  :disorder_id => dis_c.id, :dvalue.gte => dis_c.threshold).nil?
+        aa.disorder_consensus  = aa.disorder_consensus + 1
+        end
+      end
+      aa.disorder_consensus = aa.disorder_consensus/self.disorders.count
+      puts "Consensus: "+aa.disorder_consensus.to_s
+      aa.save
+    end
   end
   
   def self.calculate_disorder_consensus_for_types(ptype, disorder_types)
