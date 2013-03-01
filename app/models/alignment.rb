@@ -1100,7 +1100,7 @@ class Alignment
   
   def calculate_disorder_consensus_threaded(thread_num=65, second_thread_num=10)
     alignment_array =[]
-    Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, :order => [:align_order.asc]).each do |alignment|
+    Alignment.all(:alignment_name => self.alignment_name, :order => [:align_order.asc]).each do |alignment|
       alignment_array << alignment
     end
     thread_array=[]
