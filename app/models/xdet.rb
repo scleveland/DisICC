@@ -9,6 +9,6 @@ class Xdet
   property  :seq_id, Integer, :required =>false
   property :deleted_at, ParanoidDateTime
 
-  belongs_to :aasequence, 'AAsequence', :child_key => :aasequence_id
-  belongs_to :sequence, :through=>:aasequence
+  #belongs_to :aasequence, 'AAsequence', :child_key => :aasequence_id
+  #belongs_to :sequence, :through=>:aasequence
 end
