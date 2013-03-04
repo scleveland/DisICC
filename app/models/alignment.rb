@@ -427,6 +427,45 @@ class Alignment
     system "./lib/comp_apps/caps-perl/caps.pl #{filepath}"
     puts "Finsihed Caps 1 for #{a1.sequence}"
   end
+  
+  def run_aacon
+    filename = self.generate_fasta_alignment_file_for_all
+    output_file = "temp_data/#{self.alignment_name}/conservation.txt"
+    system "java -jar lib/conservation/compbio-conservation-1.0.jar  -i=#{filename} -m=KABAT  -o=#{output_file}"
+    self.store_aacon
+  end
+  
+  def store_aacon
+    output_file = "temp_data/#{self.alignment_name}/conservation.txt"
+    if File.exists?(output_file)
+      puts "File exists**************************************************************************************************************"
+      file = File.new(output_file, "r")
+      line = file.gets
+      Conservation.first_or_create(:alignment_id => self.align_id, :conservation_results => line)
+      file.close()
+    else
+      self.run_aacon
+    end
+  end
+  
+  def self.run_inter_caps(a1,a2,dir)
+    Dir.mkdir("temp_data/#{dir}") unless File.directory?("temp_data/#{dir}")
+    if PercentIdentity.all(:seq1_id => a1.sequence.id, :percent_id.gt => 19,:percent_id.lt => 90, :alignment_name => a1.alignment_name).count > 9
+      a1.generate_pid_fasta_file_for_inter("temp_data/#{dir}")
+    else
+      puts "Not enough PIDs for #{a1.sequence.abrev_name}: #{a1.alignment_name}"
+      return
+    end
+    if PercentIdentity.all(:seq1_id => a2.sequence.id, :percent_id.gt => 19,:percent_id.lt => 90, :alignment_name => a2.alignment_name).count > 9
+      a2.generate_pid_fasta_file_for_inter("temp_data/#{dir}")
+    else
+      puts "Not enough PIDs for #{a2.sequence.abrev_name}: #{a2.alignment_name}"
+      return
+    end
+    puts "Starting Caps 1#{a1.sequence}"
+    system "./lib/comp_apps/caps/caps_mac -F temp_data/#{dir} --inter"
+    puts "Finsihed Caps 1 for #{a1.sequence}"
+  end
 
      
   def run_perl_caps
@@ -926,12 +965,12 @@ class Alignment
     fasta_string = ">"+seq.abrev_name+" | "+seq.seq_name+"|"+seq.seq_type+"|"+seq.seq_accession+"|"+extra_string+"\n" + self.alignment_sequence+ extra_str+"\n"
   end
   
-  def generate_fasta_alignment_file_for_all(filename="")
-    alignments = Alignment.all(:alignment_name=> self.alignment_name)
+  def generate_fasta_alignment_file_for_all(filename="", dir="temp_data")
+    alignments = Alignment.all(:alignment_name=> self.alignment_name, :order =>[:align_id])
     if filename.empty?
-      filepath = "temp_data/"+self.alignment_name+"_alignment"+Time.now.to_i.to_s+".fasta"
+      filepath = "#{dir}/"+self.alignment_name+"_alignment"+Time.now.to_i.to_s+".fasta"
     else
-      filepath = "temp_data/#{filename}"
+      filepath = "#{dir}/#{filename}"
     end
     f = File.new(filepath, "w+")
     alignments.each do |alignment|
