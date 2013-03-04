@@ -1,0 +1,65 @@
+<html>
+  <head>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      google.load("visualization", "1", {packages:["corechart"]});
+      google.setOnLoadCallback(drawChart);
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([['ID','Disorder', 'CICP', 'Color','Count'],
+         <%count=0%>
+         <%data_array=[]%>
+          <%@dis_array.uniq.each do |val|%>
+              <%data_array <<"['#{@dis_array.count(val)}',#{val.split(',')[0]},#{val.split(',')[1]},#{@dis_array.count(val)},#{@dis_array.count(val)}]"%>
+              <%count +=1%>
+          <%end%>    
+          <%=data_array.join(',')%>
+          
+          ]);
+
+
+        var options = {
+          title: 'Disorder CICP Consensus Correlation',
+          hAxis: {title: 'Disorder'},
+          vAxis: {title: 'CICP'}, 
+          hAxis: {viewWindowMode: 'pretty'},
+          vAxis: {viewWindowMode: 'pretty'},
+          bubble: {textStyle: {fontSize: 11}}
+        };
+
+        var chart = new google.visualization.BubbleChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
+      $(document).ready(function(){
+
+          var arr = [
+            <%count=0%>
+             <%data_array=[]%>
+              <%@dis_array.uniq.each do |val|%>
+                  <%data_array <<"[#{val.split(',')[0]},#{val.split(',')[1]},#{@dis_array.count(val)},'#{@dis_array.count(val)}']"%>
+                  <%count +=1%>
+              <%end%>    
+              <%=data_array.join(',')%>
+            ];
+
+          plot1 = $.jqplot('chart1',[arr],{
+              title: 'Transparent Bubbles',
+              seriesDefaults:{
+                  renderer: $.jqplot.BubbleRenderer,
+                  rendererOptions: {
+                      bubbleAlpha: 0.6,
+                      highlightAlpha: 0.8
+                  },
+                  shadow: true,
+                  shadowAlpha: 0.05
+              }
+          });    
+      });
+    </script>
+    
+
+  </head>
+  <body>
+    <div id="chart_div" style="width: 900px; height: 500px;"></div>
+    <div id="chart1" style="width: 900px; height: 500px;"></div>
+  </body>
+</html>
