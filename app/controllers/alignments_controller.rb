@@ -655,6 +655,7 @@ class AlignmentsController < ApplicationController
      thread_num = 65
      @display_array = Array.new
      @max_count = 0
+     @cicp_and_disorder_stats = []
      @contact_consensus_array = Array.new
      @cicp_array = Array.new
      @cicp_contact_count =0
@@ -690,8 +691,25 @@ class AlignmentsController < ApplicationController
             alignment_color_array = Array.new      
             cur_position = 0   
             orig_position = 0
+            info_hash = {}
+            seq_length = alignment.sequence.a_asequences.count
+            contacts = alignment.sequence.a_asequences.all(:contact_consensus.gte =>0.6)
+            disorders = alignment.sequence.a_asequences.all(:disorder_consensus.gte =>0.5)
+            both = alignment.sequence.a_asequences.all(:disorder_consensus.gte =>0.5, :contact_consensus.gte => 0.6)
+            info_hash[:abrev_name] = alignment.sequence.abrev_name
+            info_hash[:cicp_range] = contacts.map{|aa| aa.original_position}.to_range
+            info_hash[:cicp_counts] = contacts.count
+            info_hash[:disorder_count] = disorders.count
+            info_hash[:disorder_range] =  disorders.map{|aa| aa.original_position}.to_range
+            info_hash[:disorder_percentage] = disorders.count.to_f/seq_length.to_f
+            info_hash[:cicp_percentage] = contacts.count.to_f/seq_length.to_f
+            info_hash[:both] = both.map{|aa| aa.original_position}.to_range
+            info_hash[:both_count] = both.count
+            info_hash[:both_percentage] = both.count.to_f/seq_length.to_f
+            info_hash[:sequence_length] =seq_length
+            @cicp_and_disorder_stats << info_hash
             AlignmentPosition.all(:alignment_id => alignment.align_id, 
-                         :order => [:alignment_position_id.asc]).each do |position|
+                         :order => [:alignment_position_id.asc]).each do |position|  
              if position.position == cur_position
                 amino_acid = sequence.a_asequences.first(:original_position=>orig_position) #AAsequence.first(:id => position.aasequence_id)
                 unless amino_acid.nil?
@@ -753,7 +771,44 @@ class AlignmentsController < ApplicationController
      thread_array.map{|t| t.join}
 
      @contact_consensus_array = @contact_consensus_array.map{|a| a.inject(0){|sum,item| sum + item}}
+
      @cicp_array = @cicp_array.map{|a| a.inject(0){|sum,item| sum + item}}
+     @cicp_info=[]
+     @cicp_info50=[]
+     @cicp_info40=[]
+     @cicp_info30=[]
+     @dis_info = []
+     @dis_info50 = []
+     @dis_info40 = []
+     @dis_info30 = []
+     for i in 0..@cicp_array.length-1
+      cp = @cicp_array[i].to_f/@cicp_contact_count
+      d = @contact_consensus_array[i].to_f/@seq_contact_count
+      if cp > 0
+        @cicp_info << i
+        if cp >= 0.5
+          @cicp_info50 << i
+        end
+        if cp >= 0.4
+          @cicp_info40 << i
+        end
+        if cp >= 0.3
+          @cicp_info30 << i
+        end
+      end
+      if d > 0
+        @dis_info << i
+        if d >= 0.5
+          @dis_info50 << i
+        end
+        if d >= 0.4
+          @dis_info40 << i
+        end
+        if d >= 0.3
+          @dis_info30 << i
+        end
+      end
+     end
      @cur_position = 0
      @tick_counter = 0
      @alignment_tick_array = Array.new
@@ -783,34 +838,22 @@ class AlignmentsController < ApplicationController
 
 
 
-   def display_disorder_and_cicp_annotated_alignment_new
+   def plotCICP
      thread_num = 65
-     @display_array = Array.new
-     @max_count = 0
-     @contact_consensus_array = Array.new
-     @cicp_array = Array.new
-     @cicp_contact_count =0
      @seq_contact_count = Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name).count
-     longest_alignment = 0;
-     alignment_array = []
+     @dis_array = []
+     alignment_array =[]
+     @cicp_contact_count =0
+     
      @alignment_name = Alignment.get(params[:id]).alignment_name
      Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, 
                                  :order => [:align_order.asc]).each do |alignment|
       puts alignment.alignment_sequence.length
-      if alignment.alignment_sequence.length > longest_alignment
-        longest_alignment = alignment.alignment_sequence.length
-      end
       if AAsequence.all(:seq_id => alignment.seq_id, :contact_consensus.gte => 0.5).count > 0
         @cicp_contact_count += 1
       end
       alignment_array << alignment
     end
-    for i in 0..longest_alignment+1
-      @contact_consensus_array[i] = Array.new(@seq_contact_count, 0)
-      @cicp_array[i] = Array.new(@seq_contact_count, 0)
-    end
-    #@contact_consensus_array = Array.new(longest_alignment, Array.new(@seq_contact_count,0))
-    puts @contact_consensus_array.length
     puts "Into The Threads"
      thread_array=[]
       thread_num.times do |i|
@@ -825,91 +868,33 @@ class AlignmentsController < ApplicationController
             AlignmentPosition.all(:alignment_id => alignment.align_id, 
                          :order => [:alignment_position_id.asc]).each do |position|
              if position.position == cur_position
-                amino_acid = sequence.a_asequences.first(:original_position=>orig_position) #AAsequence.first(:id => position.aasequence_id)
+                amino_acid = sequence.a_asequences.first(:original_position=>orig_position)
                 unless amino_acid.nil?
-                  alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, amino_acid.contact_consensus)
-                  if @contact_consensus_array[cur_position][alignment.align_order].nil?
-                    @contact_consensus_array[cur_position][alignment.align_order] = 0
+                  unless amino_acid.disorder_consensus.nil? || amino_acid.contact_consensus.nil?
+                    @dis_array << "#{amino_acid.disorder_consensus},#{amino_acid.contact_consensus}"
+                    #@dis_hash["#{amino_acid.disorder_consensus}"]["#{amino_acid.contact_consensus}"] = @dis_hash["#{amino_acid.disorder_consensus}"]["#{amino_acid.contact_consensus}"].nil? ? 1 : @dis_hash["#{amino_acid.disorder_consensus}"]["#{amino_acid.contact_consensus}"] + 1
                   end
-                  if amino_acid.disorder_consensus >= 0.5
-                    @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
-                  end
-                  if amino_acid.contact_consensus >= 0.5
-                    @cicp_array[cur_position][alignment.align_order] = @cicp_array[cur_position][alignment.align_order] + 1
-                  end
-                else
-                  puts "Amino Acid doesn't exits: #{sequence.abrev_name} | #{cur_position}:#{orig_position}" 
-                  alignment_color_array[cur_position] = residue_color(0, 0)
-                  @contact_consensus_array[cur_position][alignment.align_order] = 0
-                  @cicp_array[cur_position][alignment.align_order] = 0
                 end
              else
                 while position.position > cur_position
-                             alignment_color_array[cur_position] = "FFFFFF"
                              cur_position += 1
                 end
-                amino_acid = sequence.a_asequences.first(:original_position=>orig_position) #AAsequence.first(:id => position.aasequence_id)
+                amino_acid = sequence.a_asequences.first(:original_position=>orig_position)
                 unless amino_acid.nil?
-                  alignment_color_array[cur_position] = residue_color(amino_acid.disorder_consensus, amino_acid.contact_consensus)
-                  if @contact_consensus_array[cur_position].nil?
-                    puts "OH no " + alignment.sequence.abrev_name
+                  unless amino_acid.disorder_consensus.nil? || amino_acid.contact_consensus.nil?
+                    @dis_array << "#{amino_acid.disorder_consensus},#{amino_acid.contact_consensus}"
+                    #@dis_hash["#{amino_acid.disorder_consensus}"]["#{amino_acid.contact_consensus}"] = @dis_hash["#{amino_acid.disorder_consensus}"]["#{amino_acid.contact_consensus}"].nil? ? 1 : @dis_hash["#{amino_acid.disorder_consensus}"]["#{amino_acid.contact_consensus}"] + 1
                   end
-                  if @contact_consensus_array[cur_position][alignment.align_order].nil?
-                     @contact_consensus_array[cur_position][alignment.align_order] = 0
-                  end
-                  if amino_acid.disorder_consensus >= 0.5
-                     @contact_consensus_array[cur_position][alignment.align_order] = @contact_consensus_array[cur_position][alignment.align_order] + 1
-                  end
-                  if amino_acid.contact_consensus >= 0.5
-                   @cicp_array[cur_position][alignment.align_order] = @cicp_array[cur_position][alignment.align_order] + 1
-                  end
-                else
-                    puts "Amino Acid doesn't exits: #{sequence.abrev_name} | #{cur_position}:#{orig_position}" 
-                    alignment_color_array[cur_position] = residue_color(0, 0)
-                    @contact_consensus_array[cur_position][alignment.align_order] = 0
-                    @cicp_array[cur_position][alignment.align_order] = 0
                 end
-              end
+             end
               cur_position += 1
-              orig_position +=1
-              end                 
-              puts display_hash["name"] = Sequence.first(:seq_id => alignment.seq_id).abrev_name 
-              display_hash["alignment"] = alignment_color_array
-              @display_array[alignment.align_order] = display_hash
-            if @max_count < cur_position
-                   @max_count = cur_position
+              orig_position +=1          
             end
+            puts Sequence.first(:seq_id => alignment.seq_id).abrev_name 
           end
         }
      end
      thread_array.map{|t| t.join}
-
-     @contact_consensus_array = @contact_consensus_array.map{|a| a.inject(0){|sum,item| sum + item}}
-     @cicp_array = @cicp_array.map{|a| a.inject(0){|sum,item| sum + item}}
-     @cur_position = 0
-     @tick_counter = 0
-     @alignment_tick_array = Array.new
-     while @cur_position <= @max_count
-       @cur_position += 1
-       @tick_counter += 1
-       if @tick_counter != 25
-         @alignment_tick_array << "FFFFFF"
-       else
-         @alignment_tick_array << "000000"
-         @tick_counter = 0
-       end
-     end
-     @display_hash = Hash.new
-     @display_hash["name"] = ""
-     @display_hash["alignment"] = @alignment_tick_array  
-     @display_array << @display_hash
-     if params[:aa_length].nil?
-       @aa_length = 400
-     else
-       @aa_length = params[:aa_length].to_i
-     end
-     @ranges = (@max_count/@aa_length)
-
    end 
 
 
