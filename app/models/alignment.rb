@@ -383,6 +383,51 @@ class Alignment
       #end
       #thread_array.map{|t| t.join}
      end
+
+
+  def self.run_inter_perl_caps(a1,a2,dir)
+    Dir.mkdir("temp_data/#{dir}") unless File.directory?("temp_data/#{dir}")
+    if PercentIdentity.all(:seq1_id => a1.sequence.id, :percent_id.gt => 19,:percent_id.lt => 90, :alignment_name => a1.alignment_name).count > 9
+      a1.generate_pid_fasta_file_for_inter("temp_data/#{dir}")
+    else
+      puts "Not enough PIDs for #{a1.sequence.abrev_name}: #{a1.alignment_name}"
+      return
+    end
+    if PercentIdentity.all(:seq1_id => a2.sequence.id, :percent_id.gt => 19,:percent_id.lt => 90, :alignment_name => a2.alignment_name).count > 9
+      a2.generate_pid_fasta_file_for_inter("temp_data/#{dir}")
+    else
+      puts "Not enough PIDs for #{a2.sequence.abrev_name}: #{a2.alignment_name}"
+      return
+    end
+    filepath = "temp_data/#{dir}/#{a1.alignment_name}_#{a1.alignment_name}_pid.ctl"
+    f = File.new(filepath, "w+")
+    ctl_string = "Input file1: temp_data/#{dir}/#{a1.alignment_name}_#{a1.sequence.abrev_name}_pid.fasta	* File containing sequence alignment for the first protein
+    Input file2: temp_data/#{dir}/#{a2.alignment_name}_#{a2.sequence.abrev_name}_pid.fasta	* File containing sequence alignment for the second protein
+    Out file1: temp_data/#{dir}/#{a1.alignment_name}_#{a2.alignment_name}_#{a2.sequence.abrev_name}_pid.out	* File where the output information should be stored
+    Co-evolution analysis: 1			* (0) Intra-molecular; (1) Inter-protein
+    Type of data 1: 0				* (0) amino acid alignment; (1) codon-based alignment
+    Type of data 2: 0				* (0) amino acid alignment; (1) codon-based alignment
+    3D test: 1						* Only applicable for intra-protein analysis: (0) perform test; (1) Test is not applicable
+    Reference sequence 1: 1	* the order in the alignment of the sequences giving the real positions in the protein for 3D analyses
+    Reference sequence 2: 1	* the order in the alignment of the sequences giving the real positions in the protein for 3D analyses
+    3D file: 				* name of the file containing 3D coordinates
+    Atom interval:1-1 		* Amino acid atoms for which 3D coordinates are available
+    Significance test: 1				* (0) use threshold correlation; (1) random sampling
+    Threshold R-value: 0.1			* Threshold value for the correlation coeficient
+    Time correction: 1				* (0) no time correction; (1) weight correlations by the divergence time between sequences
+    Time estimation: 0				* (0) use synonymous distances by Li 1993; (1) use Poisson-corrected amino acid distances
+    Threshold alpha-value: 0.05		* This option valid only in case of random sampling
+    Random sampling: 10000			* Use in case significance test option is 1
+    Gaps: 2						* Remove all columns with gaps (0); Remove columns with a specified number of gaps (1); Do not remove columns with gaps(2)
+    Minimum R: 0.1					* Minimum value of correlation coeficient to be considered for filtering
+    GrSize: 3						* Maximum number of sites in the group permitted (given in percentage of protein length)"
+    f.write(ctl_string)
+    f.close
+    puts "Starting Caps 1#{a1.sequence}"
+    system "./lib/comp_apps/caps-perl/caps.pl #{filepath}"
+    puts "Finsihed Caps 1 for #{a1.sequence}"
+  end
+
      
   def run_perl_caps
     #self.run_align_assess

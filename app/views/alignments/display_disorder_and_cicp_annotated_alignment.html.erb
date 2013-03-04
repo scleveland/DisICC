@@ -5,9 +5,13 @@
 <script>
  $(document).ready(function() {
      $('#disorder').dataTable();
+     $('#stats').dataTable();
+     $('#consensus_stats').dataTable();
      <%count=0%>
      var plot1 = $.jqplot ('chart', [<%=@contact_consensus_array.map{|dv| count+=1;[count, dv.to_f/@seq_contact_count]}%>],{
         title:'<%=@alignment_name%> Alignment Consensus Disorder Prediction',
+        showMarker: false,
+        showLine: true,
         axesDefaults: {
           labelRenderer: $.jqplot.CanvasAxisLabelRenderer
         },
@@ -31,6 +35,8 @@
       <%count=0%>
       var plot2 = $.jqplot ('cicp_chart', [<%=@cicp_array.map{|dv| count+=1;[count, dv.to_f/@cicp_contact_count]}%>],{
           title:'<%=@alignment_name%> Alignment Consensus CICP Prediction',
+          showMarker: false,
+          showLine: true,
           axesDefaults: {
             labelRenderer: $.jqplot.CanvasAxisLabelRenderer
           },
@@ -94,7 +100,7 @@ Total Number of Sequences in Alignment: <%=@display_array.length-1%>
 <br>
 Total Number of Sequences with Disorder: <%=@seq_contact_count%>
 <br>
-Total Number of Sequences with Disorder: <%=@cicp_contact_count%>
+Total Number of Sequences with CICP: <%=@cicp_contact_count%>
 <br><br>
 <table id='disorder'>
   <thead>
@@ -121,4 +127,106 @@ Total Number of Sequences with Disorder: <%=@cicp_contact_count%>
 </table>  
 <br><br>
 Disorder percent: <%= disorder_count/@contact_consensus_array.length %> 
+<br><br>
+<table id='disorder_stats'>
+  <thead>
+    <th>Disorder</th>
+    <th>disorder count</th>
+    <th>disorder percentage</th>
+    <th>disorders over 50% Conserved</th>
+    <th>disorders over 50% Conserved count</th>
+    <th>disorders over 50% Conserved percentage</th>
+    <th>disorders over 40% Conserved</th>
+    <th>disorders over 40% Conserved count</th>
+    <th>disorders over 40% Conserved percentage</th>
+    <th>disorders over 30% Conserved</th>
+    <th>disorders over 30% Conserved count</th>
+    <th>disorders over 30% Conserved percentage</th>
+  </thead>
+  <tbody>
+    <tr>
+      <td><%=@dis_info.to_range%></td>
+      <td><%=@dis_info.count%></td>
+      <td><%=@dis_info.count.to_f/@contact_consensus_array.length.to_f%></td>
+      <td><%=@dis_info50.to_range%></td> 
+      <td><%=@dis_info50.count%></td>
+      <td><%=@dis_info50.count.to_f/@contact_consensus_array.length.to_f%></td>
+      <td><%=@dis_info40.to_range%></td> 
+      <td><%=@dis_info40.count%></td>
+      <td><%=@dis_info40.count.to_f/@contact_consensus_array.length.to_f%></td>
+      <td><%=@dis_info30.to_range%></td> 
+      <td><%=@dis_info30.count%></td>
+      <td><%=@dis_info30.count.to_f/@contact_consensus_array.length.to_f%></td>
+    </tr>
+  </tbody>
+</table>
+<br><br>
+<table id='consensus_stats'>
+  <thead>
+    <th>CICPs</th>
+    <th>CICP count</th>
+    <th>CICP percentage</th>
+    <th>CICPs over 50% Conserved</th>
+    <th>CICPs over 50% Conserved count</th>
+    <th>CICPs over 50% Conserved percentage</th>
+    <th>CICPs over 40% Conserved</th>
+    <th>CICPs over 40% Conserved count</th>
+    <th>CICPs over 40% Conserved percentage</th>
+    <th>CICPs over 30% Conserved</th>
+    <th>CICPs over 30% Conserved count</th>
+    <th>CICPs over 30% Conserved percentage</th>
+  </thead>
+  <tbody>
+    <tr>
+      <td><%= @cicp_info.to_range%></td>
+      <td><%=@cicp_info.count%></td>
+      <td><%=@cicp_info.count.to_f/@contact_consensus_array.length.to_f%></td>
+      <td><%=@cicp_info50.to_range%></td> 
+      <td><%=@cicp_info50.count%></td>
+      <td><%=@cicp_info50.count.to_f/@contact_consensus_array.length.to_f%></td>
+      <td><%=@cicp_info40.to_range%></td> 
+      <td><%=@cicp_info40.count%></td>
+      <td><%=@cicp_info40.count.to_f/@contact_consensus_array.length.to_f%></td>
+      <td><%=@cicp_info30.to_range%></td> 
+      <td><%=@cicp_info30.count%></td>
+      <td><%=@cicp_info30.count.to_f/@contact_consensus_array.length.to_f%></td>
+    </tr>
+  </tbody>
+</table>
+
+<br><br>
+<table id='stats'>
+  <thead>
+    <th>Sequence</th>
+    <th>CICPs</th>
+    <th>CICP count</th>
+    <th>CICP percentage</th>
+    <th>Disorders</th>
+    <th>Disorder count</th>
+    <th>Disorder percentage</th>
+    <th>Both CICP and Disordered</th>
+    <th>Both CICP and Disordered count</th>
+    <th>Both CICP and Disordered percentage</th>
+    <th>Sequence Length</th>
+  </thead>
+  <tbody>
+    <%@cicp_and_disorder_stats.each do |info_hash|%>
+      <tr>
+      <td><%=info_hash[:abrev_name]%></td>
+      <td><%=info_hash[:cicp_range]%></td>
+      <td><%=info_hash[:cicp_counts]%></td>
+      <td><%=info_hash[:cicp_percentage]%></td> 
+      <td><%=info_hash[:disorder_range]%></td>
+      <td><%=info_hash[:disorder_count]%></td>
+      <td><%=info_hash[:disorder_percentage]%></td> 
+      <td><%=info_hash[:both]%></td>
+      <td><%=info_hash[:both_count]%></td>
+      <td><%=info_hash[:both_percentage]%></td>
+      <td><%=info_hash[:sequence_length]%></td>
+      </tr>
+    <%end%>
+  </tbody>
+</table>
+
+
 <%= link_to 'Back', alignments_path %>
