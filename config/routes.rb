@@ -50,6 +50,7 @@ Disicc::Application.routes.draw do
   resources :disorder_values
   resources :intra_residue_contacts
   resources :xdets
+  resources :inter_caps
   # The priority is based upon order of creation:
   # first created -> highest priority.
 

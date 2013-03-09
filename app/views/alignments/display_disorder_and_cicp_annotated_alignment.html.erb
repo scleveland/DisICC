@@ -1,7 +1,21 @@
+
+<%= stylesheet_link_tag "parcoord", :cache => true %>
+<%= javascript_include_tag 'd3.v2.js','d3.parcoord.js','divgrid.js', :cache => true %>
+
 <p id="notice"><%= notice %></p>
 <h3>
 <%=@alignment_name%>
 </h3>
+<style>
+/* data table styles */
+#grid { height: 498px; }
+.row, .header { clear: left; font-size: 12px; line-height: 18px; height: 18px; }
+.row:nth-child(odd) { background: rgba(0,0,0,0.05); }
+.header { font-weight: bold; }
+.cell { float: left; overflow: hidden; white-space: nowrap; width: 100px; height: 18px; }
+.col-0 { width: 180px; }
+</style>
+
 <script>
  $(document).ready(function() {
      $('#disorder').dataTable();
@@ -33,6 +47,31 @@
       }
       });
       <%count=0%>
+       var plot3 = $.jqplot ('conservation_chart', [<%=@conservation.map{|c| count+=1;[count, c.to_i]}%>],{
+          title:'<%=@alignment_name%> Alignment Conservation',
+          showMarker: false,
+          showLine: true,
+          axesDefaults: {
+            labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+          },
+          axes: {
+            xaxis: {
+              label: "Amino Acid Position",
+              pad: 0
+            },
+            yaxis: {
+              label: "Conservation"
+            }
+         }   ,
+        highlighter: {
+          show: true,
+          sizeAdjust: 7.5
+        },
+        cursor: {
+          show: false
+        }
+        });
+      <%count=0%>
       var plot2 = $.jqplot ('cicp_chart', [<%=@cicp_array.map{|dv| count+=1;[count, dv.to_f/@cicp_contact_count]}%>],{
           title:'<%=@alignment_name%> Alignment Consensus CICP Prediction',
           showMarker: false,
@@ -57,11 +96,52 @@
           show: false
         }
         });
-      
+        var blue_to_brown = d3.scale.linear()
+          .domain([9, 50])
+          .range(["steelblue", "brown"])
+          .interpolate(d3.interpolateLab);
+
+        var color = function(d) { return blue_to_brown(d['Conservation']); };
+
+        // load csv file and create the chart
+        d3.csv("<%="#{root_url}#{@filename}"%>", function(data) {
+          var parcoords = d3.parcoords()("#parcoord")
+            .data(data)
+            .color(color)
+            .alpha(0.4)
+            .render()
+            .reorderable()
+            .brushable();  // enable brushing
+
+          // create data table, row hover highlighting
+          var grid = d3.divgrid();
+          d3.select("#grid")
+            .datum(data.slice(0,3000))
+            .call(grid)
+            .selectAll(".row")
+            .on({
+              "mouseover": function(d) { parcoords.highlight([d]) },
+              "mouseout": parcoords.unhighlight
+            });
+
+          // update data table on brush event
+          parcoords.on("brush", function(d) {
+            d3.select("#grid")
+              .datum(d.slice(0,3000))
+              .call(grid)
+              .selectAll(".row")
+              .on({
+                "mouseover": function(d) { parcoords.highlight([d]) },
+                "mouseout": parcoords.unhighlight
+              });
+          });
+        }); 
       
  } );
  
 </script>
+
+
 <br>
 <br>
 <% (0..@ranges).each do |i| %>
@@ -90,12 +170,20 @@
   <br>
 <% end %>
 <br>
+<div id="parcoord" class="parcoords" style="height:500px;width:900px;"></div>
+<br>
+<div id="grid" style="height:300px;overflow:auto;"></div
+<br><br>
 <div id="chart"></div>
 <br>
 <br>
 <br>
 <div id="cicp_chart"></div>
 <br>
+<br>
+<br>
+<div id="conservation_chart"></div>
+<br><br>
 Total Number of Sequences in Alignment: <%=@display_array.length-1%>
 <br>
 Total Number of Sequences with Disorder: <%=@seq_contact_count%>

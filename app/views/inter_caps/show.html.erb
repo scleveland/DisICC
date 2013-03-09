@@ -1,0 +1,301 @@
+
+<%= stylesheet_link_tag "parcoord", :cache => true %>
+<%= javascript_include_tag 'd3.v2.js','d3.parcoord.js','divgrid.js', :cache => true %>
+
+<p id="notice"><%= notice %></p>
+<h3>
+<%=@alignment_name%>
+</h3>
+<style>
+/* data table styles */
+#grid { height: 498px; }
+.row, .header { clear: left; font-size: 12px; line-height: 18px; height: 18px; }
+.row:nth-child(odd) { background: rgba(0,0,0,0.05); }
+.header { font-weight: bold; }
+.cell { float: left; overflow: hidden; white-space: nowrap; width: 100px; height: 18px; }
+.col-0 { width: 180px; }
+</style>
+
+<script>
+ $(document).ready(function() {
+     $('#disorder').dataTable();
+     $('#stats').dataTable();
+     $('#consensus_stats').dataTable();
+     <%count=0%>
+     var plot1 = $.jqplot ('chart1', [<%=@display_array[0]["disorders"].map{|dv| count+=1;[count, dv.to_f]}%>],{
+        title:'<%=@display_array[0]["name"]%> Consensus Disorder Prediction',
+        showMarker: false,
+        showLine: true,
+        axesDefaults: {
+          labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+        },
+        axes: {
+          xaxis: {
+            label: "Amino Acid Position",
+            pad: 0
+          },
+          yaxis: {
+            label: "Disorder"
+          }
+       }   ,
+      highlighter: {
+        show: true,
+        sizeAdjust: 7.5
+      },
+      cursor: {
+        show: false
+      }
+      });
+      <%count=0%>
+      var plot2 = $.jqplot ('chart2', [<%=@display_array[1]["disorders"].map{|dv| count+=1;[count, dv.to_f]}%>],{
+         title:'<%=@display_array[1]["name"]%> Consensus Disorder Prediction',
+         showMarker: false,
+         showLine: true,
+         axesDefaults: {
+           labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+         },
+         axes: {
+           xaxis: {
+             label: "Amino Acid Position",
+             pad: 0
+           },
+           yaxis: {
+             label: "Disorder"
+           }
+        }   ,
+       highlighter: {
+         show: true,
+         sizeAdjust: 7.5
+       },
+       cursor: {
+         show: false
+       }
+       });
+      <%count=0%>
+       var plot3 = $.jqplot ('inter_chart1', [<%=@display_array[0]["inter"].map{|c| count+=1;[count, c.to_i]}%>],{
+          title:'<%=@display_array[0]["name"]%> Alignment Inter Results',
+          showMarker: false,
+          showLine: true,
+          axesDefaults: {
+            labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+          },
+          axes: {
+            xaxis: {
+              label: "Amino Acid Position",
+              pad: 0
+            },
+            yaxis: {
+              label: "Inter Count"
+            }
+         }   ,
+        highlighter: {
+          show: true,
+          sizeAdjust: 7.5
+        },
+        cursor: {
+          show: false
+        }
+        });
+        <%count=0%>
+         var plot4 = $.jqplot ('inter_chart2', [<%=@display_array[1]["inter"].map{|c| count+=1;[count, c.to_i]}%>],{
+            title:'<%=@display_array[1]["name"]%> Alignment Inter Results',
+            showMarker: false,
+            showLine: true,
+            axesDefaults: {
+              labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+            },
+            axes: {
+              xaxis: {
+                label: "Amino Acid Position",
+                pad: 0
+              },
+              yaxis: {
+                label: "Inter Count"
+              }
+           }   ,
+          highlighter: {
+            show: true,
+            sizeAdjust: 7.5
+          },
+          cursor: {
+            show: false
+          }
+          });
+      <%count=0%>
+      var plot5 = $.jqplot ('cicp_chart1', [<%=@display_array[0]["contacts"].map{|v| count+=1;[count, v.to_i]}%>],{
+          title:'<%=@display_array[0]["name"]%> Consensus CICP Prediction',
+          showMarker: false,
+          showLine: true,
+          axesDefaults: {
+            labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+          },
+          axes: {
+            xaxis: {
+              label: "Amino Acid Position",
+              pad: 0
+            },
+            yaxis: {
+              label: "CICP"
+            }
+         }   ,
+        highlighter: {
+          show: true,
+          sizeAdjust: 7.5
+        },
+        cursor: {
+          show: false
+        }
+        });
+        <%count=0%>
+        var plot6 = $.jqplot ('cicp_chart2', [<%=@display_array[1]["contacts"].map{|v| count+=1;[count, v.to_i]}%>],{
+            title:'<%=@display_array[1]["name"]%> Consensus CICP Prediction',
+            showMarker: false,
+            showLine: true,
+            axesDefaults: {
+              labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+            },
+            axes: {
+              xaxis: {
+                label: "Amino Acid Position",
+                pad: 0
+              },
+              yaxis: {
+                label: "CICP"
+              }
+           }   ,
+          highlighter: {
+            show: true,
+            sizeAdjust: 7.5
+          },
+          cursor: {
+            show: false
+          }
+          });
+      
+          <%count=0%>
+          var plot8 = $.jqplot ('interflag_chart1', [<%=@display_array[0]["interflag"].map{|v| count+=1;[count, v.to_i]}%>],{
+              title:'<%=@display_array[0]["name"]%> Consensus CICP Prediction True/False',
+              showMarker: false,
+              showLine: true,
+              axesDefaults: {
+                labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+              },
+              axes: {
+                xaxis: {
+                  label: "Amino Acid Position",
+                  pad: 0
+                },
+                yaxis: {
+                  label: "True(1)/False(0)"
+                }
+             }   ,
+            highlighter: {
+              show: true,
+              sizeAdjust: 7.5
+            },
+            cursor: {
+              show: false
+            }
+            });
+            <%count=0%>
+            var plot8 = $.jqplot ('interflag_chart2', [<%=@display_array[1]["interflag"].map{|v| count+=1;[count, v.to_i]}%>],{
+                title:'<%=@display_array[1]["name"]%> Consensus CICP Prediction True/False',
+                showMarker: false,
+                showLine: true,
+                axesDefaults: {
+                  labelRenderer: $.jqplot.CanvasAxisLabelRenderer
+                },
+                axes: {
+                  xaxis: {
+                    label: "Amino Acid Position",
+                    pad: 0
+                  },
+                  yaxis: {
+                    label: "True(1)/False(0)"
+                  }
+               }   ,
+              highlighter: {
+                show: true,
+                sizeAdjust: 7.5
+              },
+              cursor: {
+                show: false
+              }
+              });
+
+      
+ } );
+ 
+</script>
+
+
+<br>
+<br>
+<% (0..@ranges).each do |i| %>
+  <table>
+    <%- @display_array.each do |seq| %>
+      <tr>
+        <td><%= seq["name"] %></td>
+        <%- #seq["alignment"].each do |residue| %>
+        <%- ((i*@aa_length)..(i*@aa_length+@aa_length-1)).each do |r|  %>
+          <% if seq["alignment"].length > r %>
+            <td align = "center" bgcolor = #<%= seq["alignment"][r]%>>&nbsp</td>
+          <%-end%>
+        <%- end %>
+      </tr>
+    <%- end %>
+  </table>
+  <br>
+  <br>
+  <br>
+  <br>
+<% end %>
+<br>
+<div id="parcoord" class="parcoords" style="height:500px;width:900px;"></div>
+<br>
+<div id="grid" style="height:300px;overflow:auto;"></div
+<br><br>
+<div id="chart1"></div>
+<br>
+<br>
+<br>
+<div id="chart2"></div>
+<br>
+<br>
+<br>
+<div id="cicp_chart1"></div>
+<br>
+<br>
+<div id="cicp_chart2"></div>
+<br>
+<br>
+<br>
+<div id="inter_chart1"></div>
+<br>
+<br>
+<div id="inter_chart2"></div>
+<br>
+<br>
+<br>
+<div id="interflag_chart1"></div>
+<br>
+<br>
+<div id="interflag_chart2"></div>
+<br><br>
+<div id="interflag_range1">
+<%=@display_array[0]["inter_range"].to_range.to_s%>
+</div>
+<br><br>
+<div id="interflagfalse_range1">
+<%=@display_array[0]["interfalse_range"].to_range.to_s%>
+</div>
+<hr>
+<br><br>
+<div id="interflag_range2">
+<%=@display_array[1]["inter_range"].to_range.to_s%>
+</div>
+<br><br>
+<div id="interflagfalse_range2">
+<%=@display_array[1]["interfalse_range"].to_range.to_s%>
+</div>
+<%= link_to 'Back', alignments_path %>

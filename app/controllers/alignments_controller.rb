@@ -659,9 +659,18 @@ class AlignmentsController < ApplicationController
      @contact_consensus_array = Array.new
      @cicp_array = Array.new
      @cicp_contact_count =0
-     @seq_contact_count = Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name).count
+     align = Alignment.get(params[:id])
+     @seq_contact_count = Alignment.all(:alignment_name =>align.alignment_name).count
      longest_alignment = 0;
      alignment_array = []
+     unless Conservation.first(:alignment_name => align.alignment_name)
+       align.run_aacon
+     end
+     if Conservation.first(:alignment_name => align.alignment_name)
+       @conservation = Conservation.first(:alignment_name => align.alignment_name).results_array
+     else
+       @conservation = []
+     end
      @alignment_name = Alignment.get(params[:id]).alignment_name
      Alignment.all(:alignment_name => Alignment.get(params[:id]).alignment_name, 
                                  :order => [:align_order.asc]).each do |alignment|
@@ -771,8 +780,19 @@ class AlignmentsController < ApplicationController
      thread_array.map{|t| t.join}
 
      @contact_consensus_array = @contact_consensus_array.map{|a| a.inject(0){|sum,item| sum + item}}
-
      @cicp_array = @cicp_array.map{|a| a.inject(0){|sum,item| sum + item}}
+     disorder_array = @contact_consensus_array.map{|dv| dv.to_f/@seq_contact_count}
+     cicp_avgs = @cicp_array.map{|dv| dv.to_f/@cicp_contact_count}
+     aa_array = Array(1..@contact_consensus_array.count)
+     group_data = aa_array.zip(disorder_array, cicp_avgs,@conservation)
+     require 'csv'
+     @filename = "#{align.alignment_name}_display_data.csv"
+     CSV.open("public/"+@filename, "w") do |csv|
+       csv << ["Position","Disorder","CICP","Conservation"]
+       group_data.each do |gd|
+         csv << gd.map{|e| e.nil? ? 0 : e}
+       end
+     end
      @cicp_info=[]
      @cicp_info50=[]
      @cicp_info40=[]
