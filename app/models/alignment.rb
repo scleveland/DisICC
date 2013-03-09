@@ -430,6 +430,7 @@ class Alignment
   
   def run_aacon
     filename = self.generate_fasta_alignment_file_for_all
+    Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
     output_file = "temp_data/#{self.alignment_name}/conservation.txt"
     system "java -jar lib/conservation/compbio-conservation-1.0.jar  -i=#{filename} -m=KABAT  -o=#{output_file}"
     self.store_aacon
@@ -441,10 +442,10 @@ class Alignment
       puts "File exists**************************************************************************************************************"
       file = File.new(output_file, "r")
       line = file.gets
-      Conservation.first_or_create(:alignment_id => self.align_id, :conservation_results => line)
+      Conservation.first_or_create(:alignment_id => self.align_id, :alignment_name => self.alignment_name, :conservation_results => line)
       file.close()
     else
-      self.run_aacon
+     # self.run_aacon
     end
   end
   
@@ -987,6 +988,53 @@ class Alignment
     end #end sequences.each
   end
 
+  def self.import_inter_caps(a1,a2,dir)
+  seq1 = a1.sequence
+  seq2 = a2.sequence
+    #open file that corresponds to this sequence
+    puts filename ="temp_data/#{dir}/#{a1.alignment_name}_#{a2.alignment_name}_#{a2.sequence.abrev_name}_pid.out"
+    if File.exists?(filename)
+      puts "File exists"
+      file = File.new(filename, "r")
+      start_line = 99999999999
+      line_num = 1
+      while (line = file.gets)
+        if line.include?('Posicion')
+          start_line = line_num + 1
+        end
+        if line_num > start_line
+          break if line == "\n"
+          results = line.split
+          puts "Result0:"+results[0]
+          puts "Result1:"+results[1]
+          puts results[0].split('(')[1]
+          position_one= results[0].split('(')[1].gsub(')','').to_i - 1
+          aasequence_one = AAsequence.first(:seq_id=> seq1.seq_id, :original_position=>position_one)
+          puts results[1].split('(')[1]
+          position_two = results[1].split('(')[1].gsub(')','').to_i - 1
+          aasequence_two = AAsequence.first(:seq_id=> seq2.seq_id, :original_position=>position_two)
+          mean_one = results[2].to_f
+          mean_two = results[3].to_f
+          correlation = results[4].to_f
+          begin
+          InterCap.create(:aasequence1_id => aasequence_one.AAsequence_id,
+                      :aasequence2_id => aasequence_two.AAsequence_id,
+                      :position_one => position_one,
+                      :position_two => position_two,
+                      :mean_one => mean_one,
+                      :mean_two => mean_two,
+                      :correlation => correlation,
+                      :seq1_id => seq1.seq_id,
+                      :seq2_id => seq2.seq_id )
+          rescue Exception => e
+           puts e
+          end
+        end
+        line_num +=1
+      end #end while
+    end #end if
+  end
+
   def import_caps
     #find correct directory
     #dir_name = "#{root_dir}/#{self.alignment_name}"
@@ -1332,6 +1380,30 @@ class Alignment
       }
     end
     thread_array.map{|t| t.join}
+  end
+  
+  def generate_jalview_annotation_consensus()
+    File.open("#{self.alignment_name}.gff", 'w') do |f1| 
+      self.sequences.each do |seq|
+        AAsequence.all(:seq_id => seq.seq_id, :disorder_consensus.gte => 0.5).each do |aa|
+          if aa.disorder_consensus > 0.5 && aa.disorder_consensus < 0.6
+            feature_type = "low_disorder"
+          elsif aa.disorder_consensus >= 0.6 && aa.disorder_consensus < 0.7
+            feature_type = "avg_disorder"
+          elsif aa.disorder_consensus >= 0.7 && aa.disorder_consensus < 0.8
+            feature_type = "medium_disorder"
+          elsif aa.disorder_consensus >= 0.8 && aa.disorder_consensus < 0.9
+            feature_type = "highly_disordered"
+          elsif aa.disorder_consensus > 0.9
+            feature_type = "extremely_disordered"
+          else
+            feature_type = "no_disorder"
+          end
+          f1.puts "None #{seq.abrev_name} -1 #{aa.original_position} #{aa.original_position} #{feature_type}"
+       end
+     end
+   end
+   #return jalview_string
   end
   
 end
