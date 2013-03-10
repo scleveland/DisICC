@@ -60,7 +60,7 @@ class AAsequence
       if dis_avg >= 0.5
        feature = "both" 
       else
-       feature =  "cicp" 
+       feature ="cicp" 
       end
     else  #color for disorder only
       if dis_avg >= 0.5 && dis_avg < 0.6

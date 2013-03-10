@@ -1384,15 +1384,14 @@ class Alignment
   
   def generate_jalview_annotation_consensus()
     File.open("#{self.alignment_name}.gff", 'w') do |f1| 
-      self.sequences.each do |seq|
-        f1.puts "both\t00FF00"
-        f1.puts "cicp\t66FFCC" 
-        f1.puts "low_disorder\tFFFF00" 
-        f1.puts "avg_disorder\tFFCC00" 
-        f1.puts "medium_disorder\tFF9900"
-        f1.puts "highly_disordered\tFF6600" 
-        f1.puts "extremely_disordered\tFF0000" 
-            
+      f1.puts "both\t00FF00"
+      f1.puts "cicp\t66FFCC" 
+      f1.puts "low_disorder\tFFFF00" 
+      f1.puts "avg_disorder\tFFCC00" 
+      f1.puts "medium_disorder\tFF9900"
+      f1.puts "highly_disordered\tFF6600" 
+      f1.puts "extremely_disordered\tFF0000"
+      self.sequences.each do |seq|     
         AAsequence.all(:seq_id => seq.seq_id, :disorder_consensus.gte => 0.5).each do |aa|
           # if aa.disorder_consensus > 0.5 && aa.disorder_consensus < 0.6
           #   feature_type = "low_disorder"
