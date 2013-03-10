@@ -56,7 +56,7 @@ class AAsequence
   def jalview_residue_color
     con_avg = self.contact_consensus
     dis_avg = self.disorder_consensus
-    if con_avg > 0.75
+    if con_avg > 0.6
       if dis_avg >= 0.5
        feature = "both" 
       else
