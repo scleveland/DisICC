@@ -1386,24 +1386,27 @@ class Alignment
     File.open("#{self.alignment_name}.gff", 'w') do |f1| 
       self.sequences.each do |seq|
         AAsequence.all(:seq_id => seq.seq_id, :disorder_consensus.gte => 0.5).each do |aa|
-          if aa.disorder_consensus > 0.5 && aa.disorder_consensus < 0.6
-            feature_type = "low_disorder"
-          elsif aa.disorder_consensus >= 0.6 && aa.disorder_consensus < 0.7
-            feature_type = "avg_disorder"
-          elsif aa.disorder_consensus >= 0.7 && aa.disorder_consensus < 0.8
-            feature_type = "medium_disorder"
-          elsif aa.disorder_consensus >= 0.8 && aa.disorder_consensus < 0.9
-            feature_type = "highly_disordered"
-          elsif aa.disorder_consensus > 0.9
-            feature_type = "extremely_disordered"
-          else
-            feature_type = "no_disorder"
+          # if aa.disorder_consensus > 0.5 && aa.disorder_consensus < 0.6
+          #   feature_type = "low_disorder"
+          # elsif aa.disorder_consensus >= 0.6 && aa.disorder_consensus < 0.7
+          #   feature_type = "avg_disorder"
+          # elsif aa.disorder_consensus >= 0.7 && aa.disorder_consensus < 0.8
+          #   feature_type = "medium_disorder"
+          # elsif aa.disorder_consensus >= 0.8 && aa.disorder_consensus < 0.9
+          #   feature_type = "highly_disordered"
+          # elsif aa.disorder_consensus > 0.9
+          #   feature_type = "extremely_disordered"
+          # else
+          #   feature_type = "no_disorder"
+          # end
+          feature = aa.jalview_residue_color
+          if feature != "no_disorder"
+            f1.puts "None\t#{seq.abrev_name}\t-1\t#{aa.original_position}\t#{aa.original_position}\t#{feature}"
           end
-          f1.puts "None #{seq.abrev_name} -1 #{aa.original_position} #{aa.original_position} #{feature_type}"
        end
      end
    end
    #return jalview_string
   end
-  
+
 end
