@@ -1392,7 +1392,7 @@ class Alignment
       f1.puts "highly_disordered\tFF6600" 
       f1.puts "extremely_disordered\tFF0000"
       self.sequences.each do |seq|     
-        AAsequence.all.each do |aa|
+        self.a_asequences.all.each do |aa|
           # if aa.disorder_consensus > 0.5 && aa.disorder_consensus < 0.6
           #   feature_type = "low_disorder"
           # elsif aa.disorder_consensus >= 0.6 && aa.disorder_consensus < 0.7
