@@ -53,4 +53,31 @@ class AAsequence
     puts self.contact_consensus
   end
   
+  def jalview_residue_color
+    con_avg = self.contact_consensus
+    dis_avg = self.disorder_consensus
+    if con_avg > 0.75
+      if dis_avg >= 0.5
+       feature = "both" 
+      else
+       feature =  "cicp" 
+      end
+    else  #color for disorder only
+      if dis_avg >= 0.5 && dis_avg < 0.6
+       feature = "low_disorder" 
+      elsif dis_avg >= 0.6 && dis_avg < 0.7
+       feature =  "avg_disorder" 
+      elsif dis_avg >= 0.7 && dis_avg < 0.8
+       feature =  "medium_disorder" 
+      elsif dis_avg >= 0.8 && dis_avg < 0.9
+       feature = "highly_disordered"
+      elsif dis_avg >= 0.9
+       feature =  "extremely_disordered"
+      else
+       feature = "no_disorder"
+      end
+    end
+    return feature
+  end
+  
 end
