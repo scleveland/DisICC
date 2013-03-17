@@ -1162,6 +1162,13 @@ class Alignment
       NewCap.all(:seq_id => seq.seq_id).destroy!
     end
   end
+  
+  def delete_conseq
+    self.sequences.each do |seq|
+      puts seq.abrev_name
+     Conseq.all(:seq_id => seq.seq_id).destroy!
+    end
+  end
 
   def delete_xdet
     self.sequences.each do |seq|
@@ -1358,7 +1365,7 @@ class Alignment
             puts filename = "temp_data/#{self.alignment_name}/#{seq.abrev_name}.conseq"
             if File.exists?(filename)
               #seq.conseqs.destroy!
-              Conseq.all(:seq_id=>seq.seq_id)
+              Conseq.all(:seq_id=>seq.seq_id).destroy!
               puts "File exists"
               file = File.new(filename, "r")
               start_line = 12
