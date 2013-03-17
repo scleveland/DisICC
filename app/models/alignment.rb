@@ -1,7 +1,7 @@
 class Alignment
   include DataMapper::Resource
   
-  property :align_id, Serial
+  property :align_id, Serial, :key=>true
   property :seq_id, Integer, :required => true
   property :alignment_name, String, :required => true
   property :align_order, Integer, :required => true
@@ -66,11 +66,11 @@ class Alignment
       if aa != "-"
         #puts "counter: "+ counter.to_s + "  |aa :" + aa
         aaseq = sequence.a_asequences.first(:original_position=> aa_counter)
-        #if !aaseq.nil?
+        if !aaseq.nil?
           AlignmentPosition.create(:alignment_id => self.align_id,
                             :position => counter,
                             :aasequence_id => aaseq.AAsequence_id)
-        #end
+        end
         aa_counter +=1
       end
       counter +=1
@@ -165,7 +165,7 @@ class Alignment
     Dir.mkdir("temp_data/#{self.alignment_name}/caps") unless File.directory?("temp_data/#{self.alignment_name}/caps")
     alignments = Alignment.all(:alignment_name => self.alignment_name)
     alignments.each do |alignment|
-      alignment.generate_pid_fasta_file_over("temp_data/#{self.alignment_name}/caps")
+      alignment.generate_pid_fasta_file_for_inter("temp_data/#{self.alignment_name}/caps")
     end
     system "./lib/comp_apps/caps/caps_mac -F temp_data/#{self.alignment_name}/caps --intra"
   end
@@ -807,7 +807,7 @@ class Alignment
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
     alignments = Alignment.all(:alignment_name => self.alignment_name)
     alignments.each do |alignment|
-      #filename= alignment.generate_pid_fasta_file("temp_data/#{self.alignment_name}")
+      #filename= alignment.generate_pid_fasta_file_for_inter("temp_data/#{self.alignment_name}")
       filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta"
       system "./lib/comp_apps/conseq/rate4site_fast -s #{filename} -o #{filename}_conseq"
     end
@@ -967,6 +967,7 @@ class Alignment
   end
   
   def generate_fasta_alignment_file_for_all(filename="", dir="temp_data")
+    Dir.mkdir("#{dir}") unless File.directory?("#{dir}")
     alignments = Alignment.all(:alignment_name=> self.alignment_name, :order =>[:align_id])
     if filename.empty?
       filepath = "#{dir}/"+self.alignment_name+"_alignment"+Time.now.to_i.to_s+".fasta"
@@ -1148,12 +1149,12 @@ class Alignment
     #end 
   end
 
-  def delete_disorders
-    self.sequences.each do |seq|
-      puts seq.abrev_name
-      seq.disorders.destroy!
-    end
-  end
+  # def delete_disorders
+  #   self.sequences.each do |seq|
+  #     puts seq.abrev_name
+  #     seq.disorders.destroy!
+  #   end
+  # end
 
   def delete_caps
     self.sequences.each do |seq|
@@ -1170,7 +1171,7 @@ class Alignment
   end
 
 
-  def import_caps_threaded(thread_num=4)
+  def import_caps_threaded(dir = "temp_data/", thread_num=4)
     seq_array = []
     self.sequences.each do |seq|
       if NewCap.all(:seq_id => seq.seq_id).count <= 0 
@@ -1186,7 +1187,7 @@ class Alignment
          while seq_array.length > 0 do
             seq = seq_array.pop
             if PercentIdentity.all(:seq1_id => seq.seq_id, :percent_id.gte => 19,:percent_id.lt => 90, :alignment_name => self.alignment_name).count > 9
-              puts filename = "temp_data/#{self.alignment_name}_#{seq.abrev_name}_pid.fasta.out"
+              puts filename = "#{dir}#{self.alignment_name}_#{seq.abrev_name}_pid.fasta.out"
               if File.exists?(filename)
                 puts "File exists"
                 file = File.new(filename, "r")
@@ -1342,6 +1343,56 @@ class Alignment
     thread_array.map{|t| t.join}
   end
   
+  def import_rate4site(thread_num=65)
+    seq_array = []
+    self.sequences.each do |s|
+      seq_array << s
+    end
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+        while seq_array.length > 0 do
+          seq = seq_array.pop      
+          if PercentIdentity.all(:seq1_id => seq.seq_id, :percent_id.gte => 19,:percent_id.lt => 90, :alignment_name => self.alignment_name).count > 9
+            #open file that corresponds to this sequence
+            puts filename = "temp_data/#{self.alignment_name}/conseq/#{seq.abrev_name}.conseq"
+            if File.exists?(filename)
+              #seq.conseqs.destroy!
+              Conseq.all(:seq_id=>seq.seq_id)
+              puts "File exists"
+              file = File.new(filename, "r")
+              start_line = 12
+              line_num = 1
+              while (line = file.gets)
+                if line_num > start_line
+                  results = line.split     
+                  puts line
+                  begin       
+                  cq = Conseq.new(:seq_id =>seq.seq_id,
+                                :aasequence_id => seq.a_asequences.first(:original_position=>(results[0].to_i-1)).id,
+                                :position=> results[0].to_i-1,
+                                :score => results[2].to_f,
+                                :msa_data => results[5],
+                                :std =>results[4].to_f,
+                                :qq_interval =>results[3])
+                  cq.valid?
+                  puts cq.errors.inspect()
+                  cq.save
+                  rescue Exception => e
+                   puts seq.abrev_name + line
+                   puts e.message
+                   break  
+                  end
+                end
+                line_num +=1
+              end #end while
+            end #end if
+          end
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
   
   def import_cornet(thread_num=65)
     seq_array = self.sequences.to_a
