@@ -809,7 +809,7 @@ class Alignment
     alignments.each do |alignment|
       #filename= alignment.generate_pid_fasta_file_for_inter("temp_data/#{self.alignment_name}")
       filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta"
-      system "./lib/comp_apps/conseq/rate4site_fast -s #{filename} -o #{filename}_conseq"
+      system "./lib/comp_apps/conseq/rate4site_fast -s #{filename} -o #{self.abrev_name}.conseq"
     end
   end
   
