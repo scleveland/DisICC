@@ -12,6 +12,8 @@ class Conseq
   property :msa_data, String, :required => true
   property :residue_variety, String, :required => false
   property :deleted_at, ParanoidDateTime
+  property :qq_interval, String, :required => false
+  property :std, Float, :required => false
   
   #belongs_to :aasequence, 'AAsequence', :child_key => :aasequence_id
   #has 1, :sequence, :through=>:aasequence
