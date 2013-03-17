@@ -1355,7 +1355,7 @@ class Alignment
           seq = seq_array.pop      
           if PercentIdentity.all(:seq1_id => seq.seq_id, :percent_id.gte => 19,:percent_id.lt => 90, :alignment_name => self.alignment_name).count > 9
             #open file that corresponds to this sequence
-            puts filename = "temp_data/#{self.alignment_name}/conseq/#{seq.abrev_name}.conseq"
+            puts filename = "temp_data/#{self.alignment_name}/#{seq.abrev_name}.conseq"
             if File.exists?(filename)
               #seq.conseqs.destroy!
               Conseq.all(:seq_id=>seq.seq_id)
