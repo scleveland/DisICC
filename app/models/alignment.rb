@@ -802,7 +802,7 @@ class Alignment
   
  
   
-exit  def run_rate4site
+  def run_rate4site
     #self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
     alignments = Alignment.all(:alignment_name => self.alignment_name)
