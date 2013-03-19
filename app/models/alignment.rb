@@ -802,14 +802,14 @@ class Alignment
   
  
   
-  def run_rate4site
+exit  def run_rate4site
     #self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
     alignments = Alignment.all(:alignment_name => self.alignment_name)
     alignments.each do |alignment|
       #filename= alignment.generate_pid_fasta_file_for_inter("temp_data/#{self.alignment_name}")
       filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{alignment.sequence.abrev_name}_pid.fasta"
-      system "./lib/comp_apps/conseq/rate4site_fast -s #{filename} -o #{alignment.sequence.abrev_name}.conseq"
+      system "./lib/comp_apps/conseq/rate4site_fast -s #{filename} -o temp_data/#{self.alignment_name}/#{alignment.sequence.abrev_name}.conseq"
     end
   end
   
@@ -1474,4 +1474,37 @@ class Alignment
    #return jalview_string
   end
 
+
+  def fix_alignment
+    alignments = Alignment.all(:alignment_name => self.alignment_name)
+    f = File.new(self.alignment_name+".fa", "w")
+    @pos_file = File.new(self.alignment_name+"_added_positions.txt", "w")
+    alignments.each do |a|
+      @pos_file.write("****#{a.sequence.abrev_name}\n")
+      seq = a.sequence.sequence.gsub("\n",'').gsub("\r",'')
+      aaseq = a.alignment_sequence
+      new_alignment = ""
+      seq_pos = 0
+      seq.each_char do |s|
+        while aaseq[seq_pos] == "-"
+          new_alignment << aaseq[seq_pos]
+          seq_pos +=1
+        end
+        if !aaseq[seq_pos].nil?
+          if s.downcase == aaseq[seq_pos].downcase
+            new_alignment << aaseq[seq_pos]
+            seq_pos +=1
+          else
+            new_alignment << s
+            @pos_file.write(s +":#{seq_pos}\n")
+          end
+        end
+      end
+      f.write(">"+a.sequence.abrev_name+"\n")
+      f.write(new_alignment+"\n")
+    end
+    f.close
+    @pos_file.close
+  end
+  
 end
