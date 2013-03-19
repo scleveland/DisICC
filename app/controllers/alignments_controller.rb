@@ -319,7 +319,7 @@ class AlignmentsController < ApplicationController
         logger.debug "VALID"
         logger.debug { @alignment.errors.inspect }
         @alignment.save
-        alignment_to_positions(@alignment)              
+        @alignment.alignment_to_positions              
         #this is the sequene label
         abrev_name = line.gsub(">", "")
 
