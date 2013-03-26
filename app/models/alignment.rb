@@ -580,7 +580,8 @@ class Alignment
     thread_array[i] = Thread.new{
        while seq_array.length > 0 do
           seq = seq_array.pop
-          puts filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{seq.abrev_name}_pid.fasta_xdet"#fasta.out"
+          #puts filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{seq.abrev_name}_pid.fasta_xdet"#fasta.out"
+          puts filename = "temp_data/#{self.alignment_name}/conseq/#{seq.abrev_name}.conseq"
           if File.exists?(filename)
             puts "File exists"
             file = File.new(filename, "r")
@@ -611,7 +612,8 @@ class Alignment
   
   def import_rate4site_single()
    seq = self.sequence
-   puts filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{seq.abrev_name}_pid.fasta_xdet"#fasta.out"
+   #puts filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{seq.abrev_name}_pid.fasta_xdet"#fasta.out"
+   puts filename = "temp_data/#{self.alignment_name}/conseq/#{seq.abrev_name}.conseq"
    if File.exists?(filename)
      puts "File exists"
      file = File.new(filename, "r")
