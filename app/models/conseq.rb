@@ -6,9 +6,9 @@ class Conseq
   property :aasequence_id, Integer, :required => true
   property :position, Integer, :required => false
   property :score, Float, :required => true
-  property :color, Integer, :required => true
-  property :state, String, :required => true
-  property :function, String, :required => true
+  property :color, Integer, :required => false
+  property :state, String, :required => false
+  property :function, String, :required => false
   property :msa_data, String, :required => true
   property :residue_variety, String, :required => false
   property :deleted_at, ParanoidDateTime

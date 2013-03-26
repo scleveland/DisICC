@@ -23,7 +23,8 @@ class AAsequence
     if IntraResidueContact.all(:seq_id => self.seq_id, :first_residue=>self.original_position) || IntraResidueContact.all(:seq_id => self.seq_id, :second_residue=>self.original_position)
       count +=1
     end
-    if !Conseq.first(:aasequence_id => self.AAsequence_id).nil? && Conseq.first(:aasequence_id => self.AAsequence_id).color > 4
+    #if !Conseq.first(:aasequence_id => self.AAsequence_id).nil? && Conseq.first(:aasequence_id => self.AAsequence_id).color > 4
+    if !Conseq.first(:aasequence_id => self.AAsequence_id).nil? && Conseq.first(:aasequence_id => self.AAsequence_id).score < 0
         count +=1
     end
     if !Xdet.first(:aasequence_id => self.AAsequence_id).nil? && (Xdet.first(:aasequence_id => self.AAsequence_id).correlation > 0.0 || Xdet.first(:aasequence_id => self.AAsequence_id).correlation == -2)
@@ -39,7 +40,8 @@ class AAsequence
   
   def calculate_intra_consensus_value_special
     count=0
-    if !Conseq.first(:aasequence_id => self.AAsequence_id).nil? && Conseq.first(:aasequence_id => self.AAsequence_id).color > 4
+    #if !Conseq.first(:aasequence_id => self.AAsequence_id).nil? && Conseq.first(:aasequence_id => self.AAsequence_id).color > 4
+    if !Conseq.first(:aasequence_id => self.AAsequence_id).nil? && Conseq.first(:aasequence_id => self.AAsequence_id).score < 0
         count +=1
     end
     if !Xdet.first(:aasequence_id => self.AAsequence_id).nil? && (Xdet.first(:aasequence_id => self.AAsequence_id).correlation > 0.0 || Xdet.first(:aasequence_id => self.AAsequence_id).correlation == -2)
