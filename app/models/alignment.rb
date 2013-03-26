@@ -571,27 +571,6 @@ class Alignment
   end
   
   def import_rate4site(thread_num=4)
-    # //echo 'Line #<b>{$line_num}</b> : ' . htmlspecialchars($line) . '<br />\n';
-    #                     //$results = explode('\t', $line);
-    #                     $results = preg_split('/\s+/', $line);
-    #                     echo $results[1] . ', ' . $results[2] .', ' . $results[3].', '.
-    #                       $results[4] . ', ' . $results[5] .', ' . $results[6].', '.$results[7] . ', ' . $results[8].', ';
-    #                     $conseq_val = new Conseq_Class();
-    #                     $AAseq->seq_id = $seq->seq_id;
-    #                     $AAseq->original_position = $results[1]-1;
-    #                     $AAseq->GetAAByPositionAndSeqID();
-    #                     $AAseq->FetchNextRow();
-    #                     $conseq_val->seq_id = $seq->seq_id;
-    #                     $conseq_val->AAsequence_id = $AAseq->AAsequence_id;
-    #                     echo $conseq_val->AAsequence_id.', '. $AAseq->amino_acid;
-    #                     echo "<br>";
-    #                     $conseq_val->score = $results[3];
-    #                     $conseq_val->color = 0;//$results[4];  
-    #                     $conseq_val->state = 0;$results[5];
-    #                     $conseq_val->function = 0;$results[6];
-    #                     $conseq_val->msa_data = 0;$results[7];
-    #                     $conseq_val->residue_variety = 0;$results[8];
-    #                     $conseq_val->CreateContact();
     seq_array = []
     self.sequences.each do |seq|
       seq_array << seq
@@ -628,6 +607,33 @@ class Alignment
       }
     end
     thread_array.map{|t| t.join}
+  end
+  
+  def import_rate4site_single()
+   seq = self.sequence
+   puts filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{seq.abrev_name}_pid.fasta_xdet"#fasta.out"
+   if File.exists?(filename)
+     puts "File exists"
+     file = File.new(filename, "r")
+     while (line = file.gets)
+         break if line == "\n"
+         results = line.split
+         puts "Postion:"+results[0]+ "| Conservation:" + results[4] + "| Correlation:" + results[8]
+         xd = Conseq.new(
+           :aasequence_id =>AlignmentPosition.first(:position=> results[0].to_i-1,:alignment_id=>self.align_id).aasequence_id,
+           :seq_id => seq.seq_id,
+           :score => results[2],
+           :color => results[2],
+           :state => 0,
+           :function => 0,
+           :msa_data => results[5],
+           :residue_variety => 0,
+         )  
+         xd.valid?
+         puts xd.errors.inspect()
+         xd.save
+     end #end while
+   end #end if
   end
   
   def import_xdet(thread_num=4)
