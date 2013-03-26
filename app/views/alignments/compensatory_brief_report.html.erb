@@ -10,11 +10,15 @@
   <tr>
     <th>Sequence</th>
     <th>SeqID</th>
+    <th>AA Count</th>
+    <th>Seq Length</th>
+    <th>Alignment Position Count</th>
     <th>PID</th>
     <th>intra-res contact</th>
     <th>conseq</th>
     <th>xdet</th>
     <th>caps</th>
+    <th>consensus</th>
   </tr>
   </thead>
   <tbody>
@@ -26,6 +30,15 @@
     </td>
     <td>
       <%= v[:id] %>
+    </td>
+    <td>
+      <%= v[:aa_count] %>
+    </td>
+    <td>
+      <%= v[:seq_length] %>
+    </td>
+    <td>
+      <%= v[:alignment_position_count] %>
     </td>
     <td>
       <%= v[:pids] %>
@@ -41,6 +54,9 @@
     </td>
     <td>
       <%= v[:new_caps] %>
+    </td>
+    <td>
+      <%= v[:consensus] %>
     </td>
   </tr>
   

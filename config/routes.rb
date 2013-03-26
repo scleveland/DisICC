@@ -29,6 +29,9 @@ Disicc::Application.routes.draw do
       get :calculate_pids
       get :download_disorder_alignment
       get :caps_report
+      get :display_cicp_annotated_alignment
+      get :display_disorder_and_cicp_annotated_alignment
+      get :plotCICP
     end
     collection do
       get :upload
@@ -49,6 +52,7 @@ Disicc::Application.routes.draw do
   resources :disorder_values
   resources :intra_residue_contacts
   resources :xdets
+  resources :inter_caps
   # The priority is based upon order of creation:
   # first created -> highest priority.
 

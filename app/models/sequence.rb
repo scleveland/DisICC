@@ -19,11 +19,11 @@ class Sequence
   has n, :a_asequences, 'AAsequence', :child_key=>[:seq_id]
   has n, :users, :through =>Resource
   has n, :disorders, 'Disorder', :child_key=>[:seq_id]
-  has n, :intra_residue_contacts, 'IntraResidueContact', :child_key=>[:seq_id]
-  has n, :caps, 'Caps', :child_key=>[:seq_id]
-  has n, :new_caps, 'NewCap', :child_key=>[:seq_id]
-  has n, :xdets, :through => :a_asequences
-  has n, :conseqs, :through => :a_asequences
+  #has n, :intra_residue_contacts, 'IntraResidueContact', :child_key=>[:seq_id]
+  #has n, :caps, 'Caps', :child_key=>[:seq_id]
+  #has n, :new_caps, 'NewCap', :child_key=>[:seq_id]
+  #has n, :xdets, :through => :a_asequences
+  #has n, :conseqs, :through => :a_asequences
   has n, :alignments, 'Alignment', :child_key=>[:seq_id]
   
   after :save do
@@ -79,14 +79,115 @@ class Sequence
     seq
   end
   
+  def calculate_contact_consensus(thread_num=100)
+    aa_array =[]
+    self.a_asequences.each do |amino_acid|
+      aa_array << amino_acid
+    end
+    thread_array=[]
+    thread_num.times do |i|
+        thread_array[i] = Thread.new{
+          while aa_array.length > 0 do
+            aaseq = aa_array.pop
+            count = 0
+            # if !IntraResidueContact.first(:seq_id => aaseq.seq_id, :first_residue=> aaseq.original_position).nil?
+            #                 count +=1
+            #               elsif !IntraResidueContact.first(:seq_id => aaseq.seq_id, :second_residue=> aaseq.original_position).nil?
+            #                 count +=1
+            #               end
+            #               if !Conseq.first(:aasequence_id => aaseq.AAsequence_id).nil?
+            #                 if Conseq.first(:aasequence_id => aaseq.AAsequence_id).color < 4
+            #                   count +=1
+            #                 end
+            #               end
+            if !Xdet.first(:aasequence_id => aaseq.AAsequence_id).nil?
+              if Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation > 0.0 || Xdet.first(:aasequence_id => aaseq.AAsequence_id).correlation == -2
+                count +=1
+                puts "Xdet"
+              end
+            end
+            if !NewCap.first(:seq_id=> aaseq.seq_id, :position_one => aaseq.original_position).nil?
+              count +=1
+            elsif !NewCap.first(:seq_id=> aaseq.seq_id, :position_two => aaseq.original_position).nil?
+              count +=1
+            end
+            aaseq.contact_consensus = count /2#4
+            puts count.to_s + " : " + aaseq.contact_consensus.to_s
+            aaseq.save
+          end  
+        }
+     end
+     thread_array.map{|t| t.join}          
+  end
+  
+  def calculate_intra_consensus(special=false, thread_num=100)
+    aaseq_array = []
+    self.a_asequences.each do |aa|
+      aaseq_array << aa
+    end
+    thread_array=[]
+    thread_num.times do |i|
+      thread_array[i] = Thread.new{
+         while aaseq_array.length > 0 do
+            aaseq = aaseq_array.pop
+            if special
+              aaseq.calculate_intra_consensus_value_special
+            else
+              aaseq.calculate_intra_consensus_value
+            end
+         end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
+  
   def generate_aasequences
-    (0..self.sequence.length-1).each do |i|
+    self.a_asequences.destroy!
+    sequence = self.sequence.gsub("\n","").gsub("\r","")
+    (0..sequence.length-1).each do |i|
       AAsequence.create(:seq_id=> self.seq_id,
-                       :amino_acid=>self.sequence[i],
+                       :amino_acid=>sequence[i],
                        :original_position=>i)
     end
   end
   
+  def import_conseq(alignment)
+   seq = self
+   puts filename = "temp_data/#{alignment.alignment_name}/conseq/#{self.abrev_name}.conseq"
+    if File.exists?(filename)
+      #seq.conseqs.destroy!
+      Conseq.all(:seq_id => seq.seq_id).destroy!
+      puts "File exists"
+      file = File.new(filename, "r")
+      start_line = 13
+      line_num = 1
+      while (line = file.gets)
+        if line_num > start_line
+          results = line.split     
+          puts line
+          begin       
+          cq = Conseq.new(:seq_id =>seq.seq_id,
+                        :aasequence_id => seq.a_asequences.first(:original_position=>(results[0].to_i-1)).id,
+                        :position=> results[0].to_i-1,
+                        :score => results[2].to_f,
+                        :color => results[3].to_i,
+                        :state => results[4],
+                        :function => results[5],
+                        :msa_data => results[6],
+                        :residue_variety => results[7])
+          cq.valid?
+          puts cq.errors.inspect()
+          cq.save
+          rescue Exception => e
+           puts seq.abrev_name + line
+           puts e.message
+           break  
+          end
+        end
+        line_num +=1
+      end #end while
+    end #end if
+  end
   
   def run_and_store_disorder
     begin
@@ -121,6 +222,44 @@ class Sequence
     end
   end
   
+  def store_disorder
+    begin
+      filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+"_iupred_short.fasta"
+      self.store_iupred_short(filepath)
+    rescue Exception => e  
+      puts self.abrev_name + " IUPRED short failed!"
+      puts e.message
+    end
+    begin
+      filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+"_iupred.fasta"
+      self.store_iupred(filepath)
+    rescue Exception => e  
+      puts self.abrev_name + " IUPRED long failed!"
+      puts e.message
+    end
+    begin
+      filepath= "temp_data/#{self.abrev_name}_RONN"
+      self.store_ronn(filepath)
+    rescue Exception => e  
+      puts self.abrev_name + " RONN failed!"
+      puts e.message
+    end
+    begin
+      filepath= "temp_data/#{self.abrev_name}_PondrFit"
+      self.store_pondr_fit(filepath)
+    rescue Exception => e  
+      puts self.abrev_name + " PONDRFit failed!"
+      puts e.message
+    end
+    begin
+      filepath= "temp_data/#{self.abrev_name}_Disembl"
+      self.store_disembl(filepath)
+    rescue Exception => e  
+      puts self.abrev_name + " DisEMBL failed!"
+      puts e.message
+    end
+  end
+  
   def generate_fasta_file
     filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+".fasta"
     f = File.new(filepath, "w+")
@@ -134,7 +273,8 @@ class Sequence
     filepath = "temp_data/"+self.abrev_name+"_"+self.seq_type+".fasta"
     f = File.new(filepath, "w+")
     f.write(">"+self.abrev_name + "\n")#"|"+self.seq_name+"|"+self.seq_type+"|"+self.seq_accession+"\n")
-    f.write(self.a_asequences(:order=>[:seq_id], :fields=>[:amino_acid]).map{|aa| aa.amino_acid}.join(''))
+    #f.write(self.a_asequences(:order=>[:seq_id], :fields=>[:amino_acid]).map{|aa| aa.amino_acid}.join(''))
+    f.write(self.sequence + "\n")
     f.close
     return filepath
   end
@@ -197,50 +337,54 @@ class Sequence
   
   def store_iupred(filepath)
     #create a new disorder object
-    dis = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"IUPred", :version=>1)
-    self.disorders << dis
-    self.save
-    file = File.new(filepath, 'r')
-    counter = 1
-    aa_count = 0
-    while (line = file.gets)
-      #puts "#{counter}: #{line}"
-      counter = counter + 1
-      if counter > 10
-        line_array = line.split(' ')
-        if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count, :amino_acid=>line_array[1])
-        #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
-        #if aa.amino_acid == line_array[1]  
-          dv = DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+    unless self.disorders.first(:disorder_type=>"IUPred")
+      dis = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"IUPred", :version=>1)
+      self.disorders << dis
+      self.save
+      file = File.new(filepath, 'r')
+      counter = 1
+      aa_count = 0
+      while (line = file.gets)
+        #puts "#{counter}: #{line}"
+        counter = counter + 1
+        if counter > 10
+          line_array = line.split(' ')
+          if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count, :amino_acid=>line_array[1])
+          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
+          #if aa.amino_acid == line_array[1]  
+            dv = DisorderValue.create(:disorder_id => dis.disorder_id, :position=> aa_count,:aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+          end
+          aa_count +=1
         end
-        aa_count +=1
       end
     end
   end
   
   def store_iupred_short(filepath)
     #create a new disorder object
-    dis = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"IUPred Short", :version=>1)
-    self.disorders << dis
-    self.save
-    file = File.new(filepath, 'r')
-    counter = 1
-    aa_count = 0
-    while (line = file.gets)
-      puts "#{counter}: #{line}"
-      counter = counter + 1
-      puts counter
-      if counter > 10
-        line_array = line.split(' ')
-        if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count, :amino_acid=>line_array[1])
-        puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s + "|" + line_array[2].to_f.to_s
-        #if aa.amino_acid == line_array[1]  
-          dv = DisorderValue.new(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
-          dv.valid?
-          puts dv.errors.inspect()
-          dv.save
+    unless self.disorders.first(:disorder_type=>"IUPred Short")
+      dis = Disorder.create(:seq_id => self.seq_id, :disorder_type=>"IUPred Short", :version=>1)
+      self.disorders << dis
+      self.save
+      file = File.new(filepath, 'r')
+      counter = 1
+      aa_count = 0
+      while (line = file.gets)
+        puts "#{counter}: #{line}"
+        counter = counter + 1
+        puts counter
+        if counter > 10
+          line_array = line.split(' ')
+          if aa = AAsequence.first(:seq_id => self.seq_id, :original_position=>aa_count, :amino_acid=>line_array[1])
+          puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s + "|" + line_array[2].to_f.to_s
+          #if aa.amino_acid == line_array[1]  
+            dv = DisorderValue.new(:disorder_id => dis.disorder_id, :position=> aa_count,:aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+            dv.valid?
+            puts dv.errors.inspect()
+            dv.save
+          end
+          aa_count +=1
         end
-        aa_count +=1
       end
     end
   end
@@ -300,14 +444,29 @@ class Sequence
           #else
           #  aa.disorder_consensus = 0
           #end
-          aa.disorder_consensus = aa.disorder_values.all(:disorder_id => dis_ids, :dvalue.gte => 0.5 ).count#.avg(:dvalue)
+          # aa.disorder_consensus = DisorderValue.all(:aasequence_id => aa.id, :disorder_id => dis_ids, :dvalue.gte => 0.5 ).count#.avg(:dvalue)
+          # if !dis_hl.nil?
+          #   if !DisorderValue.first(:aasequence_id => aa.id, :disorder_id => dis_hl.id, :dvalue.gte => dis_hl.threshold).nil?
+          #   aa.disorder_consensus  = aa.disorder_consensus + 1
+          #   end
+          # end
+          # if !dis_c.nil?
+          #   if !DisorderValue.first(:aasequence_id=>aa.id, :disorder_id => dis_c.id, :dvalue.gte => dis_c.threshold).nil?
+          #   aa.disorder_consensus  = aa.disorder_consensus + 1
+          #   end
+          # end
+          
+          
+          
+          aa.disorder_consensus = DisorderValue.all(:position => aa.original_position, :disorder_id => dis_ids, :dvalue.gte => 0.5 ).count#.avg(:dvalue)
+          puts aa.disorder_consensus
           if !dis_hl.nil?
-            if !aa.disorder_values.first(:disorder_id => dis_hl.id, :dvalue.gte => dis_hl.threshold).nil?
+            if !DisorderValue.first(:position => aa.original_position,  :disorder_id => dis_hl.id, :dvalue.gte => dis_hl.threshold).nil?
             aa.disorder_consensus  = aa.disorder_consensus + 1
             end
           end
           if !dis_c.nil?
-            if !aa.disorder_values.first(:disorder_id => dis_c.id, :dvalue.gte => dis_c.threshold).nil?
+            if !DisorderValue.first(:position => aa.original_position,  :disorder_id => dis_c.id, :dvalue.gte => dis_c.threshold).nil?
             aa.disorder_consensus  = aa.disorder_consensus + 1
             end
           end
@@ -318,6 +477,34 @@ class Sequence
       }
     end
     thread_array.map{|t| t.join}
+  end
+  
+  def calculate_disorder_consensus
+    aa_array =[]
+    AAsequence.all(:seq_id => self.seq_id, :order =>[:original_position]).each do |aa|
+      aa_array << aa
+    end
+    dis_ids = self.disorders.all(:disorder_type.not =>["DisEMBL Hotloops", "DisEMBL Coils"]).map{|k| k.disorder_id}
+    dis_hl = self.disorders.first(:disorder_type => "DisEMBL Hotloops")
+    dis_c = self.disorders.first(:disorder_type => "DisEMBL Coils")
+    while aa_array.length > 0 do
+      aa = aa_array.pop
+      aa.disorder_consensus = DisorderValue.all(:position => aa.original_position, :disorder_id => dis_ids, :dvalue.gte => 0.5 ).count#.avg(:dvalue)
+      puts aa.disorder_consensus
+      if !dis_hl.nil?
+        if !DisorderValue.first(:position => aa.original_position,  :disorder_id => dis_hl.id, :dvalue.gte => dis_hl.threshold).nil?
+        aa.disorder_consensus  = aa.disorder_consensus + 1
+        end
+      end
+      if !dis_c.nil?
+        if !DisorderValue.first(:position => aa.original_position,  :disorder_id => dis_c.id, :dvalue.gte => dis_c.threshold).nil?
+        aa.disorder_consensus  = aa.disorder_consensus + 1
+        end
+      end
+      aa.disorder_consensus = aa.disorder_consensus/self.disorders.count
+      puts "Consensus: "+aa.disorder_consensus.to_s
+      aa.save
+    end
   end
   
   def self.calculate_disorder_consensus_for_types(ptype, disorder_types)
@@ -363,7 +550,7 @@ class Sequence
          if aa = AAsequence.first(:seq_id => self.id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
          #if aa.amino_acid == line_array[1]  
-           DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
+           DisorderValue.create(:disorder_id => dis.disorder_id, :position=> aa_count,:aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
          end
          aa_count +=1
        end
@@ -410,7 +597,7 @@ class Sequence
         puts "Submitting Cornet for: #{self.abrev_name}"
         url ="http://gpcr.biocomp.unibo.it/cgi/predictors/cornet/pred_cmapcgi.cgi"
         cur = Curl::Easy.new(url)
-        post_params= "address=sean.b.cleveland@gmail.com&seqname=#{self.abrev_name}&db=SwissProt&text=#{self.sequence}&filter=No"
+        post_params= "address=sean.b.cleveland@gmail.com&seqname=#{self.abrev_name}&db=SwissProt&text=#{self.sequence.gsub("\n","").gsub("\r","")}&filter=No"
         cur.http_post(post_params)
         puts post_params
          puts cur.body_str.to_s
@@ -450,7 +637,7 @@ class Sequence
      unless self.disorders.first(:disorder_type=>"PONDR Fit")
        url ="http://www.disprot.org/action_predict.php"
        cur = Curl::Easy.new(url)
-       post_params= "PONDRFIT=yes&native_sequence=#{'>'+self.abrev_name}\r\n#{self.sequence}&fontsize=small&plotwidth=7&xticincrement=100&plotheight=auto&filetype=eps&legend=full"
+       post_params= "PONDRFIT=yes&native_sequence=#{'>'+self.abrev_name}\r\n#{self.sequence.gsub("\n",'').gsub("\r",'')}&fontsize=small&plotwidth=7&xticincrement=100&plotheight=auto&filetype=eps&legend=full"
        cur.http_post(post_params)
        puts post_params
        puts cur.body_str.to_s
@@ -486,7 +673,7 @@ class Sequence
          if aa = AAsequence.first(:seq_id => self.id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
          #if aa.amino_acid == line_array[1]  
-           DisorderValue.create(:disorder_id => dis.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
+           DisorderValue.create(:disorder_id => dis.disorder_id, :position=> aa_count,:aasequence_id => aa.AAsequence_id, :dvalue=>line_array[2].to_f) 
          end
          aa_count +=1
      end
@@ -550,8 +737,8 @@ class Sequence
          if aa = AAsequence.first(:seq_id => self.id, :original_position=>aa_count)
          #puts "Amino Acid -"+line_array[1]+ " : " + aa.amino_acid + " | " + aa_count.to_s
          #if aa.amino_acid == line_array[1]  
-           DisorderValue.create(:disorder_id => dis_coil.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[0].to_f) 
-           DisorderValue.create(:disorder_id => dis_hl.disorder_id, :aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
+           DisorderValue.create(:disorder_id => dis_coil.disorder_id,:position=> aa_count,:aasequence_id => aa.AAsequence_id, :dvalue=>line_array[0].to_f) 
+           DisorderValue.create(:disorder_id => dis_hl.disorder_id, :position=> aa_count,:aasequence_id => aa.AAsequence_id, :dvalue=>line_array[1].to_f) 
          end
          aa_count +=1
         elsif counter == 2
@@ -713,6 +900,7 @@ class Sequence
     end
   end
   
+  
   def generate_jalview_annotation_iupred
     jalview_string= ""
     dis = Disorder.first(:seq_id=>self.seq_id)
@@ -788,6 +976,34 @@ class Sequence
       repository.adapter.execute(sql)
       sql="UPDATE a_asequences SET contact_positive_consensus =0.0 WHERE seq_id=#{self.seq_id}"
       repository.adapter.execute(sql)
+  end
+  
+  def import_cornet(alignment)
+    #open file that corresponds to this sequence
+    seq = self
+    puts filename = "temp_data/#{alignment.alignment_name}/cornet/#{seq.abrev_name}.cornet"
+    if File.exists?(filename)
+      seq.intra_residue_contacts(:type => "Cornet").destroy!
+      puts "File exists"
+      file = File.new(filename, "r")
+      start_line = 17
+      line_num = 1
+      while (line = file.gets)
+        if line_num > start_line
+          results = line.split     
+          puts results       
+          intra = IntraResidueContact.new(:seq_id => seq.seq_id,
+           :first_residue =>results[0].to_i,
+           :second_residue =>results[1].to_i,
+           :confidence => results[2].to_f,
+           :type => "Cornet")
+          intra.valid?
+          puts intra.errors.inspect()
+          intra.save
+        end
+        line_num +=1
+      end #end while
+    end #end if
   end
   
   def import_svmcon

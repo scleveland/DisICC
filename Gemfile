@@ -36,6 +36,7 @@ gem 'dm-observer',          DM_VERSION
 
 gem 'fastercsv'
 gem 'curb'  #using this for RONN
+gem 'rest-client'
 gem 'bio', '1.4.3' #bioruby
 
 gem 'dm-devise', '1.4.0'

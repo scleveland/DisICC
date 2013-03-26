@@ -11,10 +11,12 @@
   <tr>
     <th>Sequence</th>
     <th>ID</th>
-    <tH>Type</th>
+    <th>Type</th>
     <%- @disorder_types.each do |d| -%>
       <th><%=d%></th>
     <%-end-%>
+    <th>Consensus</th>
+    <th>Disorder Count</th>
   </tr>
   </thead>
   <tbody>
@@ -37,6 +39,12 @@
     <%- @disorder_types.each do |d| -%>
       <td><a href="<%=disorder_path(v[d+"_id"])%>"><%=v[d]%></a></td>
     <%-end-%>
+    <td> 
+      <%= v[:consensus_count] %>
+    </td>
+    <td> 
+      <%= v[:disorder_count] %>
+    </td>
   </tr>
   
 <% end %>
