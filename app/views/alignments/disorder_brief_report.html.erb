@@ -1,5 +1,9 @@
 <script>
  $(document).ready(function() {
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0d076bc458cf6f1ca1d17f9d60533b358c88f653
      $('#alignments').dataTable({"bPaginate": false});
  } );
 </script>
@@ -23,6 +27,11 @@
   <tr>
     
     <td>
+
+      <%= v[:name] %>
+    </td>
+    <%- @disorder_types.each do |d| -%>
+      <td><%=v[d]%></td>
       <a href="<%= display_disorder_annotated_alignment_alignment_path(v[:align_id])%>"><%= v[:name] %></a>
     </td>
     <td>

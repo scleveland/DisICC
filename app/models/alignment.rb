@@ -570,6 +570,75 @@ class Alignment
     thread_array.map{|t| t.join}
   end
   
+
+  def import_rate4site(thread_num=4)
+    seq_array = []
+    self.sequences.each do |seq|
+      seq_array << seq
+    end
+    thread_array=[]
+    thread_num.times do |i|
+    thread_array[i] = Thread.new{
+       while seq_array.length > 0 do
+          seq = seq_array.pop
+          #puts filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{seq.abrev_name}_pid.fasta_xdet"#fasta.out"
+          puts filename = "temp_data/#{self.alignment_name}/conseq/#{seq.abrev_name}.conseq"
+          if File.exists?(filename)
+            puts "File exists"
+            file = File.new(filename, "r")
+            while (line = file.gets)
+                break if line == "\n"
+                results = line.split
+                puts "Postion:"+results[0]+ "| Conservation:" + results[4] + "| Correlation:" + results[8]
+                xd = Conseq.new(
+                  :aasequence_id =>AlignmentPosition.first(:position=> results[0].to_i-1,:alignment_id=>self.align_id).aasequence_id,
+                  :seq_id => seq.seq_id,
+                  :score => results[2],
+                  :color => results[2],
+                  :state => 0,
+                  :function => 0,
+                  :msa_data => results[5],
+                  :residue_variety => 0,
+                )  
+                xd.valid?
+                puts xd.errors.inspect()
+                xd.save
+            end #end while
+          end #end if
+        end
+      }
+    end
+    thread_array.map{|t| t.join}
+  end
+  
+  def import_rate4site_single()
+   seq = self.sequence
+   #puts filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{seq.abrev_name}_pid.fasta_xdet"#fasta.out"
+   puts filename = "temp_data/#{self.alignment_name}/#{seq.abrev_name}.conseq"
+   if File.exists?(filename)
+     puts "File exists"
+     file = File.new(filename, "r")
+     while (line = file.gets)
+         break if line == "\n"
+         results = line.split
+         puts "Postion:"+results[0]+ "| Conservation:" + results[4] + "| Correlation:" + results[8]
+         xd = Conseq.new(
+           :aasequence_id =>AlignmentPosition.first(:position=> results[0].to_i-1,:alignment_id=>self.align_id).aasequence_id,
+           :seq_id => seq.seq_id,
+           :score => results[2],
+           :color => results[2],
+           :state => 0,
+           :function => 0,
+           :msa_data => results[5],
+           :residue_variety => 0,
+         )  
+         xd.valid?
+         puts xd.errors.inspect()
+         xd.save
+     end #end while
+   end #end if
+  end
+  
   def import_xdet(thread_num=4)
     seq_array = []
     self.sequences.each do |seq|
@@ -800,8 +869,13 @@ class Alignment
     thread_array.map{|t| t.join}
   end
   
- 
-  
+
+  def run_rate4site_single
+    Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
+    filename = "temp_data/#{self.alignment_name}/#{self.alignment_name}_#{self.sequence.abrev_name}_pid.fasta"
+    system "./lib/comp_apps/conseq/rate4site_fast -s #{filename} -o #{self.sequence.abrev_name}.conseq"
+  end
+
   def run_rate4site
     #self.run_align_assess
     Dir.mkdir("temp_data/#{self.alignment_name}") unless File.directory?("temp_data/#{self.alignment_name}")
