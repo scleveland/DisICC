@@ -1063,11 +1063,11 @@ class Alignment
     end #end sequences.each
   end
 
-  def self.import_inter_caps(a1,a2,dir)
+  def self.import_inter_caps(a1,a2,path)
   seq1 = a1.sequence
   seq2 = a2.sequence
     #open file that corresponds to this sequence
-    puts filename ="temp_data/#{dir}/#{a1.alignment_name}_#{a2.alignment_name}_#{a2.sequence.abrev_name}_pid.out"
+    puts filename = path#"temp_data/#{dir}/#{a1.alignment_name}_#{a2.alignment_name}_#{a2.sequence.abrev_name}_pid.out"
     if File.exists?(filename)
       puts "File exists"
       file = File.new(filename, "r")
