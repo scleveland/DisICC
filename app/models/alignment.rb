@@ -1100,7 +1100,9 @@ class Alignment
                       :mean_two => mean_two,
                       :correlation => correlation,
                       :seq1_id => seq1.seq_id,
-                      :seq2_id => seq2.seq_id )
+                      :seq2_id => seq2.seq_id,
+                      :alignment1_id => a1.id,
+                      :alignment2_id => a2.id )
           rescue Exception => e
            puts e
           end
