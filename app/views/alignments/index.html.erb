@@ -69,9 +69,9 @@
     <td>
       <%= link_to "Percent Identities", percent_identities_alignment_path(alignment.align_id) %>
       <td>
-        <% if !@al1_hash["#{alignment.align_id}"].nil?%>
-          <% @al1_hash["#{alignment.align_id}"].each do |al| %>
-            <%= link_to "View Inter Consensus with #{Alignment.get(al).alignment_name}", display_disorder_and_cicp_and_inter_annotated_alignment_alignment_path(:id => alignment.align_id, :a2_id=>al) %>
+        <% if !@al1_hash["#{alignment.alignment_name}"].nil?%>
+          <% @al1_hash["#{alignment.alignment_name}"].each do |al| %>
+            <%= link_to "View Inter Consensus with #{al}", display_disorder_and_cicp_and_inter_annotated_alignment_alignment_path(:id => alignment.align_id, :a2_id=>Alignment.first(:alignment_name=>al).align_id) %>
           <%end%>
         <%end%>
       </td>

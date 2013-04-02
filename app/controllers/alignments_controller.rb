@@ -3,17 +3,23 @@ class AlignmentsController < ApplicationController
   # GET /alignments.xml
   def index
     @alignments = Alignment.all#(:seq_id=>current_user.sequences.map{|s| s.seq_id})
-    sql = "Select Distinct alignment1_id, alignment2_id From inter_caps"
+    sql = "Select Distinct alignment1_id, alignment2_id From inter_caps WHERE alignment1_id IS NOT NULL"
     results = repository.adapter.select(sql)
     @al1_hash = {}
     results.each do |r|
       puts "#{r.alignment1_id}, #{r.alignment2_id}"
-      @al1_hash["#{r.alignment1_id}"] = []
-      @al1_hash["#{r.alignment2_id}"] = []
+      @al1_hash["#{Alignment.get(r.alignment1_id.to_i).alignment_name}"] =[]
+      @al1_hash["#{Alignment.get(r.alignment2_id.to_i).alignment_name}"] =[]
     end
     results.each do |r|
-      @al1_hash["#{r.alignment1_id}"] << r.alignment2_id
-      @al1_hash["#{r.alignment2_id}"] << r.alignment1_id
+      if !r.alignment1_id.nil? && !r.alignment2_id.nil?
+        @al1_hash["#{Alignment.get(r.alignment1_id.to_i).alignment_name}"] << Alignment.get(r.alignment2_id.to_i).alignment_name
+        @al1_hash["#{Alignment.get(r.alignment2_id.to_i).alignment_name}"] << Alignment.get(r.alignment1_id.to_i).alignment_name
+        
+      end
+    end
+    @al1_hash.each do |al|
+      al.uniq!
     end
     respond_to do |format|
       format.html # index.html.erb
@@ -879,7 +885,7 @@ class AlignmentsController < ApplicationController
       @inter_consensus = Array.new
       @cicp_contact_count =0
       align = Alignment.get(params[:id])
-      align2 = Alignment.get(params[:a2_id])
+      align2_ids = Alignment.get(params[:a2_id]).sequences.map{|s| s.seq_id}
       @seq_contact_count = Alignment.all(:alignment_name =>align.alignment_name).count
       longest_alignment = 0;
       alignment_array = []
@@ -943,11 +949,11 @@ class AlignmentsController < ApplicationController
               if position.position == cur_position
                  amino_acid = sequence.a_asequences.first(:original_position=>orig_position) #AAsequence.first(:id => position.aasequence_id)
                  unless amino_acid.nil?
-                   if InterCap.all(:aasequence1_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
-                      intercap = InterCap.all(:aasequence1_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
+                   if InterCap.all(:aasequence1_id => amino_acid.id, :alignment1_id=>alignment.align_id, :seq2_id => align2_ids, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
+                      intercap = InterCap.all(:aasequence1_id => amino_acid.id, :alignment1_id=>alignment.align_id, :seq2_id => align2_ids, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
                       @inter_consensus[cur_position][alignment.align_order] =1
-                    elsif InterCap.all(:aasequence2_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
-                      intercap = InterCap.all(:aasequence2_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
+                    elsif InterCap.all(:aasequence2_id => amino_acid.id, :seq1_id => align2_ids, :alignment2_id => alignment.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
+                      intercap = InterCap.all(:aasequence2_id => amino_acid.id, :seq1_id => align2_ids, :alignment2_id => alignment.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
                       @inter_consensus[cur_position][alignment.align_order] =1
                     else
                       intercap = 0
@@ -976,11 +982,11 @@ class AlignmentsController < ApplicationController
                  end
                  amino_acid = sequence.a_asequences.first(:original_position=>orig_position) #AAsequence.first(:id => position.aasequence_id)
                  unless amino_acid.nil?
-                   if InterCap.all(:aasequence1_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
-                       intercap = InterCap.all(:aasequence1_id => amino_acid.id,:alignment1_id=>align.align_id, :alignment2_id => align2.align_id,  :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
+                   if InterCap.all(:aasequence1_id => amino_acid.id, :alignment1_id=>alignment.align_id, :seq2_id => align2_ids, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
+                       intercap = InterCap.all(:aasequence1_id => amino_acid.id,:alignment1_id=>alignment.align_id, :seq2_id => align2_ids,  :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
                        @inter_consensus[cur_position][alignment.align_order] =1
-                     elsif InterCap.all(:aasequence2_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
-                       intercap = InterCap.all(:aasequence2_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
+                     elsif InterCap.all(:aasequence2_id => amino_acid.id, :seq1_id => align2_ids, :alignment2_id => alignment.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
+                       intercap = InterCap.all(:aasequence2_id => amino_acid.id, :seq1_id => align2_ids, :alignment2_id => alignment.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
                        @inter_consensus[cur_position][alignment.align_order] =1
                      else
                        intercap = 0

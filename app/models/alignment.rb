@@ -1066,6 +1066,8 @@ class Alignment
   def self.import_inter_caps(a1,a2,path)
   seq1 = a1.sequence
   seq2 = a2.sequence
+  a1_first = Alignment.first(:alignment_name => a1.alignment_name)
+  a2_first = Alignment.first(:alignment_name => a2.alignment_name)
     #open file that corresponds to this sequence
     puts filename = path#"temp_data/#{dir}/#{a1.alignment_name}_#{a2.alignment_name}_#{a2.sequence.abrev_name}_pid.out"
     if File.exists?(filename)
@@ -1101,8 +1103,8 @@ class Alignment
                       :correlation => correlation,
                       :seq1_id => seq1.seq_id,
                       :seq2_id => seq2.seq_id,
-                      :alignment1_id => a1.align_id,
-                      :alignment2_id => a2.align_id )
+                      :alignment1_id => a1_first.align_id,
+                      :alignment2_id => a2_first.align_id )
           rescue Exception => e
            puts e
           end
