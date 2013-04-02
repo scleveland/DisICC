@@ -1581,4 +1581,5 @@ class Alignment
     @pos_file.close
   end
   
+
 end

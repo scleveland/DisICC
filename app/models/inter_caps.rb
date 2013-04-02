@@ -11,6 +11,8 @@ class InterCap
   property :correlation, Float, :required => true
   property :seq1_id, Integer, :required => true
   property :seq2_id, Integer, :required => true
+  property :alignment1_id, Integer, :required => false
+  property :alignment2_id, Integer, :required => false
   property :created_at, DateTime, :required => false
   
   def seq1

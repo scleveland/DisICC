@@ -16,10 +16,10 @@ Disicc::Application.routes.draw do
     member do
       get :display_annotated_alignment
       get :display_compensatory_annotated_alignment
-
+      get :show_inter_align
       get :display_xdet_annotated_alignment
       get :display_caps_annotated_alignment
-
+      get :display_disorder_and_cicp_and_inter_annotated_alignment
       get :display_disorder_annotated_alignment
       get :calculate_intraresidue_consensus
       get :calculate_intraresidue_consensus_threaded

@@ -26,6 +26,7 @@
     <th></th>
     <th></th>
     <th></th>
+    <th></th>
   </tr>
   </thead>
   <tbody>
@@ -67,7 +68,9 @@
     </td>
     <td>
       <%= link_to "Percent Identities", percent_identities_alignment_path(alignment.align_id) %>
-    </td>
+      <td>
+        <%= link_to "View Inter Consensus", display_disorder_and_cicp_and_inter_annotated_alignment_alignment_path(alignment.align_id) %>
+      </td>
     <td><%= link_to 'Destroy', alignment, :confirm => 'Are you sure?', :method => :delete %></td>
   </tr>
   

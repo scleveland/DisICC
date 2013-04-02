@@ -1,0 +1,38 @@
+<h1>Listing Inter Caps</h1>
+
+<script>
+ $(document).ready(function() {
+     $('#intercaps').dataTable();
+ } );
+</script>
+<table id ='intercaps'>
+  <thead>
+  <tr>
+    <th>Link</th>
+    <th>Seq1</th>
+    <th>Seq1 ID</th>
+    <th>Seq1 Type</th>
+    <th>Seq2</th>
+    <th>Seq2 ID</th>
+    <th>Seq2 Type</th>
+  </tr>
+  </thead>
+  <tbody>
+<% @inter_caps.each do |ic| %>
+  <tr>
+    <td><%= link_to "Go", inter_cap_path(ic.caps_id)%></td>
+    <td><%= ic.seq1_id %></td>
+    <td><%= ic.seq1.seq_name %></td>
+    <td><%= ic.seq1.seq_type %></td>
+    <td><%= ic.seq2_id %></td>
+    <td><%= ic.seq2.seq_name %></td>
+    <td><%= ic.seq2.seq_type %></td>
+  </tr>
+<% end %>
+</tbody>
+</table>
+
+<br />
+
+<br />
+
