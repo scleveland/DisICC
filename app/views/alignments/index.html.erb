@@ -69,7 +69,11 @@
     <td>
       <%= link_to "Percent Identities", percent_identities_alignment_path(alignment.align_id) %>
       <td>
-        <%= link_to "View Inter Consensus", display_disorder_and_cicp_and_inter_annotated_alignment_alignment_path(alignment.align_id) %>
+        <% if !@al1_hash["#{alignment.align_id}"].nil?%>
+          <% @al1_hash["#{alignment.align_id}"].each do |al| %>
+            <%= link_to "View Inter Consensus with #{Alignment.get(al).alignment_name}", display_disorder_and_cicp_and_inter_annotated_alignment_alignment_path(:id => alignment.align_id, :a2_id=>al) %>
+          <%end%>
+        <%end%>
       </td>
     <td><%= link_to 'Destroy', alignment, :confirm => 'Are you sure?', :method => :delete %></td>
   </tr>

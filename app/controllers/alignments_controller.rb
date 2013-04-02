@@ -3,7 +3,18 @@ class AlignmentsController < ApplicationController
   # GET /alignments.xml
   def index
     @alignments = Alignment.all#(:seq_id=>current_user.sequences.map{|s| s.seq_id})
-
+    sql = "Select Distinct alignment1_id, alignment2_id From inter_caps"
+    results = repository.adapter.select(sql)
+    @al1_hash = {}
+    results.each do |r|
+      puts "#{r.alignment1_id}, #{r.alignment2_id}"
+      @al1_hash["#{r.alignment1_id}"] = []
+      @al1_hash["#{r.alignment2_id}"] = []
+    end
+    results.each do |r|
+      @al1_hash["#{r.alignment1_id}"] << r.alignment2_id
+      @al1_hash["#{r.alignment2_id}"] << r.alignment1_id
+    end
     respond_to do |format|
       format.html # index.html.erb
       format.xml  { render :xml => @alignments }
@@ -868,6 +879,7 @@ class AlignmentsController < ApplicationController
       @inter_consensus = Array.new
       @cicp_contact_count =0
       align = Alignment.get(params[:id])
+      align2 = Alignment.get(params[:a2_id])
       @seq_contact_count = Alignment.all(:alignment_name =>align.alignment_name).count
       longest_alignment = 0;
       alignment_array = []
@@ -931,11 +943,11 @@ class AlignmentsController < ApplicationController
               if position.position == cur_position
                  amino_acid = sequence.a_asequences.first(:original_position=>orig_position) #AAsequence.first(:id => position.aasequence_id)
                  unless amino_acid.nil?
-                   if InterCap.all(:aasequence1_id => amino_acid.id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
-                      intercap = InterCap.all(:aasequence1_id => amino_acid.id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
+                   if InterCap.all(:aasequence1_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
+                      intercap = InterCap.all(:aasequence1_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
                       @inter_consensus[cur_position][alignment.align_order] =1
-                    elsif InterCap.all(:aasequence2_id => amino_acid.id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
-                      intercap = InterCap.all(:aasequence2_id => amino_acid.id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
+                    elsif InterCap.all(:aasequence2_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
+                      intercap = InterCap.all(:aasequence2_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
                       @inter_consensus[cur_position][alignment.align_order] =1
                     else
                       intercap = 0
@@ -964,11 +976,11 @@ class AlignmentsController < ApplicationController
                  end
                  amino_acid = sequence.a_asequences.first(:original_position=>orig_position) #AAsequence.first(:id => position.aasequence_id)
                  unless amino_acid.nil?
-                   if InterCap.all(:aasequence1_id => amino_acid.id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
-                       intercap = InterCap.all(:aasequence1_id => amino_acid.id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
+                   if InterCap.all(:aasequence1_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
+                       intercap = InterCap.all(:aasequence1_id => amino_acid.id,:alignment1_id=>align.align_id, :alignment2_id => align2.align_id,  :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
                        @inter_consensus[cur_position][alignment.align_order] =1
-                     elsif InterCap.all(:aasequence2_id => amino_acid.id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
-                       intercap = InterCap.all(:aasequence2_id => amino_acid.id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
+                     elsif InterCap.all(:aasequence2_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count > 0  
+                       intercap = InterCap.all(:aasequence2_id => amino_acid.id, :alignment1_id=>align.align_id, :alignment2_id => align2.align_id, :unique=>true, :fields=>[:aasequence1_id, :aasequence2_id]).count
                        @inter_consensus[cur_position][alignment.align_order] =1
                      else
                        intercap = 0

@@ -1101,8 +1101,8 @@ class Alignment
                       :correlation => correlation,
                       :seq1_id => seq1.seq_id,
                       :seq2_id => seq2.seq_id,
-                      :alignment1_id => a1.id,
-                      :alignment2_id => a2.id )
+                      :alignment1_id => a1.align_id,
+                      :alignment2_id => a2.align_id )
           rescue Exception => e
            puts e
           end

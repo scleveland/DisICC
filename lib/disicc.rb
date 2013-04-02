@@ -341,10 +341,10 @@ end
 
 def import_my_data1PN
   a1 = Alignment.get(2212)
-  a2 = Alignment.get(2803)
+  a2 = Alignment.get(2804)
   Alignment.import_inter_caps(Alignment.first(:alignment_name=>a1.alignment_name, :seq_id=>367),
                               Alignment.first(:alignment_name=>a2.alignment_name, :seq_id=>131),
-                              "temp_data/InterAlign/BEIV/PPNN_BEIV.out")
+                              "temp_data/InterAlign/BEIV/PN_BEIV.out")
   Alignment.import_inter_caps(Alignment.first(:alignment_name=>a1.alignment_name, :seq_id=>261),
     Alignment.first(:alignment_name=>a2.alignment_name, :seq_id=>39),
     "temp_data/InterAlign/CDV/PN_CDV.out")
