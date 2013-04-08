@@ -258,95 +258,103 @@ class AlignmentsController < ApplicationController
   
   def complete_process_fasta_file
     directory = "temp_data"
-    @new_file = File.join(directory,params[:datafile_name])
-    logger.debug "BEFORE*************************"
-    begin
-      file = File.new(@new_file, "r")
-      logger.debug "After FILE OPEN"
-      puts "After FILE OPEN"
-      counter = 0
-      order_count = 0
-      abrev_name = ""
-      alignment_sequence = ""
-      fasta_hash = Hash.new
-      logger.debug "BEFORE FASTA HASH*****"
-      puts "BEFORE FASTA HASH*****"
-      logger.debug "BEFORE@1232132131****"
-      range = params[:seq_num].to_i - 1
-      logger.debug "BEFORE FASTA RANGE***********"
-      puts "BEFORE FASTA RANGE***********"
-      (0..range).each do |i|
-        logger.debug "BLAH"
-        fasta_hash = fasta_hash.merge(params["fasta_name"+i.to_s].strip => params["seq"+i.to_s])
-      end
-      logger.debug {fasta_hash}
-      logger.debug "AFTER FASTA HASH*******"
-      while (line = file.gets)
-        if line.count(">") > 0 && counter > 0
-          #save the current sequence to an alignment
-          logger.debug {fasta_hash[abrev_name]}
-          puts fasta_hash[abrev_name]
-          @sequence = Sequence.get(fasta_hash[abrev_name.strip])
-          logger.debug "After"
-          puts "After"  
-          logger.debug "OHNO NONONONONO" 
-          @alignment = Alignment.new(:seq_id => @sequence.id,
-                           :alignment_name => params[:alignment_name],
-                           :align_order => order_count,
-                           :alignment_sequence => alignment_sequence,
-                           :fasta_title => abrev_name)
-           logger.debug "SHAZZZZZAAAAAAAM"                 
-          logger.debug { @alignment.valid?}
-          if !@alignment.valid?
-            puts @alignment.errors.inspect()
-          end
-          logger.debug "VALID"
-          logger.debug { @alignment.errors.inspect }
-          @alignment.save
-          alignment_to_positions(@alignment)              
-          #this is the sequene label
-          abrev_name = line.gsub(">", "")
-
-          order_count += 1
-          alignment_sequence = ""
-        elsif line.count(">") > 0
-          abrev_name = line.gsub(">","")
-          logger.debug { abrev_name }
-          alignment_sequence =""
-        elsif counter > 0
-          alignment_sequence = alignment_sequence + line.lstrip.rstrip
-        end
-        counter = counter + 1
-      end
-       puts fasta_hash[abrev_name]
-        @sequence = Sequence.get(fasta_hash[abrev_name.strip])
-        logger.debug "After"
-        puts "After"  
-        logger.debug "OHNO NONONONONO" 
-        @alignment = Alignment.new(:seq_id => @sequence.seq_id,
-                         :alignment_name => params[:alignment_name],
-                         :align_order => order_count,
-                         :alignment_sequence => alignment_sequence,
-                         :fasta_title => abrev_name)
-         logger.debug "SHAZZZZZAAAAAAAM"                 
-        logger.debug { @alignment.valid?}
-        if !@alignment.valid?
-          puts @alignment.errors.inspect()
-        end
-        logger.debug "VALID"
-        logger.debug { @alignment.errors.inspect }
-        @alignment.save
-        @alignment.alignment_to_positions              
-        #this is the sequene label
-        abrev_name = line.gsub(">", "")
-
-        order_count += 1
-        alignment_sequence = ""
-      file.close
-      rescue => err
-          puts "Exception: #{err}"
-          err
+    new_file = File.join(directory,params[:datafile_name])
+    fasta_hash = Hash.new
+    range = params[:seq_num].to_i - 1
+    (0..range).each do |i|
+      fasta_hash = fasta_hash.merge(params["fasta_name"+i.to_s].strip => params["seq"+i.to_s])
     end
+    # logger.debug "BEFORE*************************"
+    # begin
+    #   file = File.new(@new_file, "r")
+    #   logger.debug "After FILE OPEN"
+    #   puts "After FILE OPEN"
+    #   counter = 0
+    #   order_count = 0
+    #   abrev_name = ""
+    #   alignment_sequence = ""
+    #   fasta_hash = Hash.new
+    #   logger.debug "BEFORE FASTA HASH*****"
+    #   puts "BEFORE FASTA HASH*****"
+    #   logger.debug "BEFORE@1232132131****"
+    #   range = params[:seq_num].to_i - 1
+    #   logger.debug "BEFORE FASTA RANGE***********"
+    #   puts "BEFORE FASTA RANGE***********"
+    #   (0..range).each do |i|
+    #     logger.debug "BLAH"
+    #     fasta_hash = fasta_hash.merge(params["fasta_name"+i.to_s].strip => params["seq"+i.to_s])
+    #   end
+    #   logger.debug {fasta_hash}
+    #   logger.debug "AFTER FASTA HASH*******"
+    #   while (line = file.gets)
+    #     if line.count(">") > 0 && counter > 0
+    #       #save the current sequence to an alignment
+    #       logger.debug {fasta_hash[abrev_name]}
+    #       puts fasta_hash[abrev_name]
+    #       @sequence = Sequence.get(fasta_hash[abrev_name.strip])
+    #       logger.debug "After"
+    #       puts "After"  
+    #       logger.debug "OHNO NONONONONO" 
+    #       @alignment = Alignment.new(:seq_id => @sequence.id,
+    #                        :alignment_name => params[:alignment_name],
+    #                        :align_order => order_count,
+    #                        :alignment_sequence => alignment_sequence,
+    #                        :fasta_title => abrev_name)
+    #        logger.debug "SHAZZZZZAAAAAAAM"                 
+    #       logger.debug { @alignment.valid?}
+    #       if !@alignment.valid?
+    #         puts @alignment.errors.inspect()
+    #       end
+    #       logger.debug "VALID"
+    #       logger.debug { @alignment.errors.inspect }
+    #       @alignment.save
+    #       alignment_to_positions(@alignment)              
+    #       #this is the sequene label
+    #       abrev_name = line.gsub(">", "")
+    # 
+    #       order_count += 1
+    #       alignment_sequence = ""
+    #     elsif line.count(">") > 0
+    #       abrev_name = line.gsub(">","")
+    #       logger.debug { abrev_name }
+    #       alignment_sequence =""
+    #     elsif counter > 0
+    #       alignment_sequence = alignment_sequence + line.lstrip.rstrip
+    #     end
+    #     counter = counter + 1
+    #   end
+    #    puts fasta_hash[abrev_name]
+    #     @sequence = Sequence.get(fasta_hash[abrev_name.strip])
+    #     logger.debug "After"
+    #     puts "After"  
+    #     logger.debug "OHNO NONONONONO" 
+    #     @alignment = Alignment.new(:seq_id => @sequence.seq_id,
+    #                      :alignment_name => params[:alignment_name],
+    #                      :align_order => order_count,
+    #                      :alignment_sequence => alignment_sequence,
+    #                      :fasta_title => abrev_name)
+    #      logger.debug "SHAZZZZZAAAAAAAM"                 
+    #     logger.debug { @alignment.valid?}
+    #     if !@alignment.valid?
+    #       puts @alignment.errors.inspect()
+    #     end
+    #     logger.debug "VALID"
+    #     logger.debug { @alignment.errors.inspect }
+    #     @alignment.save
+    #     @alignment.alignment_to_positions              
+    #     #this is the sequene label
+    #     abrev_name = line.gsub(">", "")
+    # 
+    #     order_count += 1
+    #     alignment_sequence = ""
+    #   file.close
+    #   rescue => err
+    #       puts "Exception: #{err}"
+    #       err
+    # end
+    require 'process_fasta.rb'
+    Resque.enqueue(ProcessFasta, new_file, fasta_hash, params[:alignment_name], current_user.id)
+    flash[:notice] = "You will recieve an email when you Alignment is ready."
     redirect_to(alignments_path)
   end
   

@@ -44,6 +44,9 @@ gem 'jquery-rails'
 gem 'web-app-theme', '0.6.2'
 
 gem 'gmail'
+gem 'capistrano'
+gem 'rvm-capistrano'
+gem "resque"
 group(:development, :test) do
 
   # Uncomment this if you want to use rspec for testing your application

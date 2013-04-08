@@ -250,3 +250,6 @@ lib/railsview/themes/004_pixo/preview/js/jquery.touchSwipe.js
 lib/railsview/themes/004_pixo/preview/plans.html
 lib/railsview/themes/004_pixo/preview/work.html
 tmp/pids/server.pid
+log/workers_error.log
+log/workers.log
+config/deploy.rb

@@ -1273,6 +1273,7 @@ class Alignment
             seq = seq_array.pop
             if PercentIdentity.all(:seq1_id => seq.seq_id, :percent_id.gte => 19,:percent_id.lt => 90, :alignment_name => self.alignment_name).count > 9
               puts filename = "#{dir}#{self.alignment_name}_#{seq.abrev_name}_pid.fasta.out"
+              #temp_data/#{self.alignment_name}/#{self.alignment_name}_#{Sequence.get(this_seq_id).abrev_name}_pid.fasta
               if File.exists?(filename)
                 puts "File exists"
                 file = File.new(filename, "r")
@@ -1428,56 +1429,56 @@ class Alignment
     thread_array.map{|t| t.join}
   end
   
-  def import_rate4site(thread_num=65)
-    seq_array = []
-    self.sequences.each do |s|
-      seq_array << s
-    end
-    thread_array=[]
-    thread_num.times do |i|
-      thread_array[i] = Thread.new{
-        while seq_array.length > 0 do
-          seq = seq_array.pop      
-          if PercentIdentity.all(:seq1_id => seq.seq_id, :percent_id.gte => 19,:percent_id.lt => 90, :alignment_name => self.alignment_name).count > 9
-            #open file that corresponds to this sequence
-            puts filename = "temp_data/#{self.alignment_name}/#{seq.abrev_name}.conseq"
-            if File.exists?(filename)
-              #seq.conseqs.destroy!
-              Conseq.all(:seq_id=>seq.seq_id).destroy!
-              puts "File exists"
-              file = File.new(filename, "r")
-              start_line = 12
-              line_num = 1
-              while (line = file.gets)
-                if line_num > start_line
-                  results = line.split     
-                  puts line
-                  begin       
-                  cq = Conseq.new(:seq_id =>seq.seq_id,
-                                :aasequence_id => seq.a_asequences.first(:original_position=>(results[0].to_i-1)).id,
-                                :position=> results[0].to_i-1,
-                                :score => results[2].to_f,
-                                :msa_data => results[5],
-                                :std =>results[4].to_f,
-                                :qq_interval =>results[3])
-                  cq.valid?
-                  puts cq.errors.inspect()
-                  cq.save
-                  rescue Exception => e
-                   puts seq.abrev_name + line
-                   puts e.message
-                   break  
-                  end
-                end
-                line_num +=1
-              end #end while
-            end #end if
-          end
-        end
-      }
-    end
-    thread_array.map{|t| t.join}
-  end
+  # def import_rate4site(thread_num=65)
+  #   seq_array = []
+  #   self.sequences.each do |s|
+  #     seq_array << s
+  #   end
+  #   thread_array=[]
+  #   thread_num.times do |i|
+  #     thread_array[i] = Thread.new{
+  #       while seq_array.length > 0 do
+  #         seq = seq_array.pop      
+  #         if PercentIdentity.all(:seq1_id => seq.seq_id, :percent_id.gte => 19,:percent_id.lt => 90, :alignment_name => self.alignment_name).count > 9
+  #           #open file that corresponds to this sequence
+  #           puts filename = "temp_data/#{self.alignment_name}/#{seq.abrev_name}.conseq"
+  #           if File.exists?(filename)
+  #             #seq.conseqs.destroy!
+  #             Conseq.all(:seq_id=>seq.seq_id).destroy!
+  #             puts "File exists"
+  #             file = File.new(filename, "r")
+  #             start_line = 12
+  #             line_num = 1
+  #             while (line = file.gets)
+  #               if line_num > start_line
+  #                 results = line.split     
+  #                 puts line
+  #                 begin       
+  #                 cq = Conseq.new(:seq_id =>seq.seq_id,
+  #                               :aasequence_id => seq.a_asequences.first(:original_position=>(results[0].to_i-1)).id,
+  #                               :position=> results[0].to_i-1,
+  #                               :score => results[2].to_f,
+  #                               :msa_data => results[5],
+  #                               :std =>results[4].to_f,
+  #                               :qq_interval =>results[3])
+  #                 cq.valid?
+  #                 puts cq.errors.inspect()
+  #                 cq.save
+  #                 rescue Exception => e
+  #                  puts seq.abrev_name + line
+  #                  puts e.message
+  #                  break  
+  #                 end
+  #               end
+  #               line_num +=1
+  #             end #end while
+  #           end #end if
+  #         end
+  #       end
+  #     }
+  #   end
+  #   thread_array.map{|t| t.join}
+  # end
   
   def import_cornet(thread_num=65)
     seq_array = self.sequences.to_a
@@ -1585,5 +1586,18 @@ class Alignment
     @pos_file.close
   end
   
+  @queue= :disicc
+  #resque task
+  def self.perform(alignment_id)
+    alignment = Alignment.get(alignment_id)
+    alignment.run_and_store_disorder(thread_num=20)
+    alignment.run_align_assess
+    alignment.run_xdet_threaded(dir="temp_data", thread_num=4)
+    alignment.import_xdet_new(thread_num=4)
+    alignment.run_rate4site
+    alignment.import_rate4site(thread_num=4)
+    alignment.run_perl_caps
+    alignment.import_caps_threaded(dir = "temp_data/#{self.alignment_name}/", thread_num=4)
+  end
 
 end
